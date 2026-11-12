@@ -49,7 +49,7 @@ def interpret(message: str, characters: list[dict]) -> Interpretation:
                                       "esquivar", "reagir", "contra-atac", "o que faco", "o que posso fazer", "sequencia")):
         return Interpretation("tactics")
     if any(token in raw for token in ("revelou", "ativou", "ativei", "executou", "usou", "utilizou", "atacou", "tentei", "tirei",
-                                      "tirou", "recebi", "tomei", "esquivei", "rolou",
+                                      "tirou", "recebi", "tomei", "sofri", "sofreu", "fiquei", "esquivei", "rolou",
                                       "gastei", "gastou", "acertou", "falhou", "atualizei")):
         return Interpretation("combat_report")
     if any(token in raw for token in ("regra", "turno funciona", "quantas acoes", "acoes principais")):
