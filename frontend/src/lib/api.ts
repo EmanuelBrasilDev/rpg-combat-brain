@@ -20,6 +20,9 @@ export interface Character {
   maw_used: number;
   amaterasu_used: number;
   critical_count: number;
+  reinforcement_used: number;
+  output_used: number;
+  reverse_used: number;
   effects: string[];
   notes: string;
 }
