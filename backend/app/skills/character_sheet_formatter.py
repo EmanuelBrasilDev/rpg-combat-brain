@@ -13,6 +13,30 @@ def _value(value: object) -> str:
     return "?" if value is None else str(value)
 
 
+def _resource(current: object, maximum: object) -> str:
+    return _value(current) if maximum is None else f"{_value(current)}/{_value(maximum)}"
+
+
+def _registered_details(technique: dict | None) -> str:
+    """Acrescenta detalhes registrados manualmente sem encobrir a habilidade original."""
+    if not technique:
+        return ""
+    parts = []
+    if technique.get("ea_cost") is not None:
+        parts.append(f"EA {technique['ea_cost']}")
+    if technique.get("damage"):
+        parts.append(f"dano {_safe(technique['damage'])}")
+    if technique.get("accuracy_bonus"):
+        parts.append(f"acerto {_safe(technique['accuracy_bonus'])}")
+    if technique.get("effect"):
+        parts.append(_safe(technique["effect"]))
+    if technique.get("status") == "synthetic":
+        parts.append("[SINTÉTICA, não confirmada]")
+    elif technique.get("status") == "placeholder":
+        parts.append("[PENDENTE]")
+    return " — " + "; ".join(parts) if parts else ""
+
+
 def _safe(text: object) -> str:
     """Preserva nomes, impede que campos livres quebrem a estrutura de linhas."""
     return " ".join(str(text).replace("\r", " ").replace("\n", " ").split())
@@ -50,8 +74,8 @@ class CharacterSheetFormatterSkill:
 
         lines: list[str] = [
             f"# {_safe(character['name'])}",
-            f"HP ({_value(character['hp'])})",
-            f"EA ({_value(character['ea'])})",
+            f"HP ({_resource(character['hp'], character['max_hp'])})",
+            f"EA ({_resource(character['ea'], character['max_ea'])})",
         ]
         if character["level"] is not None:
             lines.append(f"Nível ({character['level']})")
@@ -69,9 +93,11 @@ class CharacterSheetFormatterSkill:
                 detail += "; modificador pendente"
             lines.append(f"* {ATTRIBUTE_LABELS[field]} ({detail})")
 
+        custom = [t for t in character["techniques"] if t["category"] == "technique"]
+        canonical_map = {t["name"].casefold(): t for t in custom}
         if is_akira:
-            self._akira_forms(lines, character, abilities)
-            self._akira_mangekyou(lines, character, abilities)
+            self._akira_forms(lines, character, abilities, canonical_map)
+            self._akira_mangekyou(lines, character, abilities, canonical_map)
 
         self._section(lines, "Habilidades Extras")
         extra = [t for t in character["techniques"] if t["category"] == "extra"]
@@ -82,9 +108,7 @@ class CharacterSheetFormatterSkill:
 
         self._section(lines, "Técnicas")
         if is_akira:
-            self._akira_techniques(lines, character, abilities)
-
-        custom = [t for t in character["techniques"] if t["category"] == "technique"]
+            self._akira_techniques(lines, character, abilities, canonical_map)
         canonical = {a["name"].casefold() for a in abilities.values()} if is_akira else set()
         canonical_names = {
             "crimson dragon's fangs", "crimson dragon's maw", "dragon scales",
@@ -99,14 +123,22 @@ class CharacterSheetFormatterSkill:
             lines.append("* Nenhuma cadastrada")
 
         self._section(lines, "Itens")
+        custom_kenrykat = next((item for item in character["items"]
+                                if item["name"].casefold() == "kenrykat"), None) if is_akira else None
         if is_akira:
             weapon = abilities.get("kenrykat")
             if weapon:
+                damage = (custom_kenrykat.get("damage") if custom_kenrykat and
+                          custom_kenrykat.get("damage") else weapon.get("damage"))
+                suffix = (f"; {_safe(custom_kenrykat['effect'])}" if custom_kenrykat and
+                          custom_kenrykat.get("effect") else "")
                 lines.append(
-                    f"* {_safe(weapon['name'])} ({_value(weapon.get('damage'))})"
-                    f" — Kokusen ({character['critical_count']}/3 críticos)"
+                    f"* {_safe(weapon['name'])} ({_value(damage)})"
+                    f" — Kokusen ({character['critical_count']}/3 críticos){suffix}"
                 )
         for item in character["items"]:
+            if is_akira and item["name"].casefold() == "kenrykat":
+                continue
             line = f"* {_safe(item['name'])}"
             if item["damage"]:
                 line += f" ({_safe(item['damage'])})"
@@ -134,7 +166,8 @@ class CharacterSheetFormatterSkill:
     def _section(lines: list[str], title: str) -> None:
         lines.extend(["-", f"# {title}"])
 
-    def _akira_forms(self, lines: list[str], character: dict, abilities: dict) -> None:
+    def _akira_forms(self, lines: list[str], character: dict, abilities: dict,
+                     custom: dict[str, dict]) -> None:
         scales = abilities.get("scales", {})
         assault = abilities.get("assault", {})
         self._section(lines, "Dragon Scales (?t restantes)")
@@ -146,6 +179,9 @@ class CharacterSheetFormatterSkill:
             f"* Punição ({_value(scales.get('punishment'))})",
             f"* Chamas ({_value(scales.get('weapon_flames'))})",
         ]
+        if "dragon scales" in custom:
+            t = custom["dragon scales"]
+            lines.append(f"* Cooldown cadastrado ({_value(t.get('cooldown'))}c)" + _registered_details(t))
         self._section(lines, "Dragon Assault (?t restantes)")
         extra = assault.get("weapon_damage_bonus", "")
         parts = [piece.strip() for piece in extra.split("+")] if extra else []
@@ -157,30 +193,45 @@ class CharacterSheetFormatterSkill:
             f"* Dano ({parts[1] if len(parts) >= 2 else '?'})",
             f"* Chamas ({parts[2] if len(parts) >= 3 else '?'})",
         ]
+        if "dragon assault" in custom:
+            t = custom["dragon assault"]
+            lines.append(f"* Cooldown cadastrado ({_value(t.get('cooldown'))}c)" + _registered_details(t))
 
-    def _akira_mangekyou(self, lines: list[str], character: dict, abilities: dict) -> None:
+    def _akira_mangekyou(self, lines: list[str], character: dict, abilities: dict,
+                         custom: dict[str, dict]) -> None:
         systems = load_catalog().get("systems", {})
         level = systems.get("mangekyou", {}).get("akira_level")
         limit = abilities.get("amaterasu", {}).get("limit")
         self._section(lines, "Mangekyō Sharingan")
         lines.append(f"* Nível ({_value(level)})")
         lines.append(f"* Amaterasu ({character['amaterasu_used']}/{_value(limit)} uso)")
-        lines.append("* Cooldown de Amaterasu (?c — não cadastrado)")
+        t = custom.get("amaterasu")
+        cd = t.get("cooldown") if t else None
+        label = f"* Cooldown de Amaterasu ({_value(cd)}c"
+        label += " — não cadastrado" if cd is None else ""
+        lines.append(label + ")" + _registered_details(t))
 
-    def _akira_techniques(self, lines: list[str], character: dict, abilities: dict) -> None:
+    def _akira_techniques(self, lines: list[str], character: dict, abilities: dict,
+                          custom: dict[str, dict]) -> None:
         for tech_id, used in (("fangs", "fangs_used"), ("maw", "maw_used")):
             ability = abilities.get(tech_id)
             if ability:
+                t = custom.get(ability["name"].casefold())
+                cd = t.get("cooldown") if t else None
                 lines.append(
                     f"* {_safe(ability['name'])} "
                     f"({character[used]}/{_value(ability.get('limit'))} usos)"
-                    " — cooldown ?c"
+                    f" — cooldown {_value(cd)}c" + _registered_details(t)
                 )
         for tech_id in ("scales", "assault"):
             ability = abilities.get(tech_id)
             if ability:
-                lines.append(f"* {_safe(ability['name'])} (?t restantes)")
+                t = custom.get(ability["name"].casefold())
+                cd = f"; {_value(t.get('cooldown'))}c" if t else ""
+                lines.append(f"* {_safe(ability['name'])} (?t restantes{cd})" + _registered_details(t))
         for tech_id in ("flame_connection", "flames_sho"):
             ability = abilities.get(tech_id)
             if ability:
-                lines.append(f"* {_safe(ability['name'])} (?c)")
+                t = custom.get(ability["name"].casefold())
+                cd = t.get("cooldown") if t else None
+                lines.append(f"* {_safe(ability['name'])} ({_value(cd)}c)" + _registered_details(t))
