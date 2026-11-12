@@ -23,6 +23,9 @@ class Character(BaseModel):
     maw_used: int = Field(default=0, ge=0, le=6)
     amaterasu_used: int = Field(default=0, ge=0, le=1)
     critical_count: int = Field(default=0, ge=0, le=3)
+    reinforcement_used: int = Field(default=0, ge=0, le=30)
+    output_used: int = Field(default=0, ge=0, le=30)
+    reverse_used: int = Field(default=0, ge=0, le=20)
     effects: list[str] = Field(default_factory=list)
     notes: str = Field(default="", max_length=3000)
 
