@@ -1,6 +1,7 @@
 """CombatEventTracker: transforma relatos passados em rascunhos auditáveis, sem aplicar dano implícito."""
 import re
 from .dice_roll_interpreter import DiceRollInterpreter, normalize
+from .enemy_ability_discovery import EnemyAbilityDiscoverySkill
 from ..catalog import load_catalog
 
 PAST_EVENTS = re.compile(
@@ -28,10 +29,12 @@ NAMED_RESOURCE = re.compile(
 class CombatEventTracker:
     def __init__(self):
         self.rolls = DiceRollInterpreter()
+        self.discovery = EnemyAbilityDiscoverySkill()
 
     def draft(self, message: str, character_id: str, characters: list[dict]) -> dict | None:
         text = normalize(message)
-        if not PAST_EVENTS.search(text) or FUTURE_MARKERS.search(text):
+        discoveries = self.discovery.extract(message, characters)
+        if (not PAST_EVENTS.search(text) and not discoveries) or FUTURE_MARKERS.search(text):
             return None
         rolls = self.rolls.parse(message)
         actor = next((c for c in characters if c["id"] == character_id), None)
@@ -85,7 +88,9 @@ class CombatEventTracker:
             warnings.append("O dano informado é registrado como observação; sem HP final, não será descontado automaticamente.")
         if ea_spent:
             warnings.append("EA gasta é observação; sem EA final confirmada, não será subtraída automaticamente.")
-        if not updates:
+        if discoveries:
+            warnings.append("Técnicas reveladas ficam pendentes até você confirmar nome, inimigo e cooldown. Dados não informados não serão inventados.")
+        if not updates and not discoveries:
             warnings.append("Nenhuma mudança absoluta de ficha identificada. Confirmar o relato não alterará HP/EA.")
         if rolls and any(roll["total"] is None for roll in rolls):
             warnings.append("Expressões de dados sem resultado foram mantidas como fórmulas, não como rolagens executadas.")
@@ -96,6 +101,7 @@ class CombatEventTracker:
             "damage_received": int(damage_match.group(1)) if damage_match else None,
             "ea_spent": int(ea_spent.group(1)) if ea_spent else None,
             "proposed_updates": updates, "sheet_snapshots": snapshots,
+            "proposed_discoveries": discoveries,
             "warnings": warnings, "kind": "reported_observation",
         }
 
