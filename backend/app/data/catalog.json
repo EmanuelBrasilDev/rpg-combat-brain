@@ -176,6 +176,25 @@
       "notes": "Acerto garantido e chama contínua; desespero prejudica testes. Não extinguir por método convencional."
     },
     {
+      "id": "mega_brain",
+      "name": "Mega Brain",
+      "kind": "extra_state",
+      "category": "Estado",
+      "range": "Pessoal",
+      "base_cost": 0,
+      "cooldown_turns": 2,
+      "duration_turns": 1,
+      "bonus_actions_on_activation": "todas as ações bônus do turno",
+      "critical_threshold": 15,
+      "critical_die": "d20 natural",
+      "interrupted_by_cc": true,
+      "cc_examples": ["Stun", "Paralisia", "Fear"],
+      "description": "Estado de concentração extrema que elimina distrações e sincroniza corpo, mente e energia amaldiçoada, tornando movimentos precisos e impactos perigosos.",
+      "effect": "Enquanto ativo, resultados de 15+ no d20 natural contam como Crítico.",
+      "notes": "Consome todas as ações bônus no turno de ativação. Duração: 1 turno. Ao sofrer qualquer CC, estado encerrado. Cooldown: 2 turnos.",
+      "status": "confirmed"
+    },
+    {
       "id": "kenrykat",
       "name": "Kenrykat",
       "kind": "weapon",
