@@ -25,7 +25,7 @@ def interpret(message: str, characters: list[dict]) -> Interpretation:
         if character:
             return Interpretation("update", (character["id"], {"forca": "strength", "velocidade": "speed", "vel": "speed", "des": "speed", "resistencia": "resistance", "intelecto": "intellect", "espirito": "spirit", "esp": "spirit"}.get(field, field), int(number)))
         return Interpretation("unknown_character")
-    match = re.fullmatch(r"(?:atualiz[ae]|confirm[oa])\s+(?:o\s+)?(hp|ea|forca|velocidade|resistencia|intelecto|espirito|esp|vel|des)\s+d[oa]\s+(.+?)\s+(?:para|em)\s+(\d+)", raw)
+    match = re.fullmatch(r"(?:atualiz[ae]|confirm[oa])\s+(?:[oa]\s+)?(hp|ea|forca|velocidade|resistencia|intelecto|espirito|esp|vel|des)\s+d[oa]\s+(.+?)\s+(?:para|em)\s+(\d+)", raw)
     if match:
         field, name, number = match.groups()
         character = next((c for c in characters if normalize(c["name"]) == name), None)
