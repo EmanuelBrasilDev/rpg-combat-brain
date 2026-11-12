@@ -5,6 +5,7 @@ from .energy_optimizer import EnergyOptimizer
 from .dice_probability import expected_dice
 from .combat_specialists import EnemyAnalysisSkill
 from .attribute_comparison import AttributeComparisonSkill
+from .skills.mega_brain import MegaBrainSkill
 
 class TacticalDecision:
     def __init__(self):
