@@ -6,6 +6,7 @@ O texto é somente leitura: nenhuma ação, recurso ou estado é alterado.
 """
 from ..catalog import load_catalog
 from ..models import Character
+from ..lab_models import EnemyProfile
 from .attributes import ATTRIBUTE_FIELDS, ATTRIBUTE_LABELS, attribute_modifier
 
 
@@ -177,6 +178,42 @@ class CharacterSheetFormatterSkill:
         elif character["origin_warning"]:
             lines += ["-", f"* {_safe(character['origin_warning'])}"]
         return "\n".join(lines).rstrip() + "\n"
+
+    def format_lab(self, raw_profile: dict) -> str:
+        """Formata ficha salva no Enemy Forge sem importá-la para o combate.
+
+        Preserva os dados hipotéticos e marca a origem; não empresta o arsenal
+        de Akira, cria eventos ou muda aprovação de técnicas.
+        """
+        profile = EnemyProfile.model_validate(raw_profile)
+        character = Character(
+            id="lab:" + profile.id,
+            name=profile.name,
+            team="enemy",
+            hp=profile.hp, ea=profile.ea,
+            strength=profile.strength, speed=profile.speed,
+            resistance=profile.resistance, intellect=profile.intellect,
+            spirit=profile.spirit, tier=profile.tier,
+            reinforcement_level=profile.reinforcement_level,
+            output_level=profile.output_level,
+            reverse_level=profile.reverse_level,
+            domain_level=profile.domain_level,
+            extra_metrics=profile.extra_metrics,
+            techniques=[tech.model_dump() for tech in profile.techniques],
+            sheet_origin=profile.origin,
+            origin_warning=(
+                "FICHA DE LABORATÓRIO: dados de referência ainda não "
+                "validados para o combate real."
+                if profile.origin == "user_example" else
+                "FICHA DE LABORATÓRIO: técnicas e números sintéticos, "
+                "não oficiais e não confirmados pelo mestre."
+            ),
+        )
+        rendered = self.format(character.model_dump()).rstrip()
+        if profile.assumptions:
+            rendered += "\n-\n# Premissas da geração\n"
+            rendered += "\n".join("* " + _safe(x) for x in profile.assumptions)
+        return rendered + "\n"
 
     @staticmethod
     def _section(lines: list[str], title: str) -> None:
