@@ -342,12 +342,14 @@
                   <div><span>Reação</span><strong class:available={selected.reaction_available}>{selected.reaction_available ? 'Disponível' : 'Utilizada'}</strong></div>
                   <div><span>Críticos para Kokusen</span><strong>{selected.critical_count} / 3</strong></div>
                 </div>
+                {#if selected.id === 'akira'}
                 <div class="intel-subtitle">USOS DE TÉCNICAS</div>
                 <div class="usage-row"><span>Fangs</span><div class="usage-track"><div style:width={(selected.fangs_used / 6 * 100) + '%'}></div></div><strong>{selected.fangs_used}/6</strong></div>
                 <div class="usage-row"><span>Maw</span><div class="usage-track"><div style:width={(selected.maw_used / 6 * 100) + '%'}></div></div><strong>{selected.maw_used}/6</strong></div>
                 <div class="usage-row"><span>Amaterasu</span><div class="usage-track"><div style:width={(selected.amaterasu_used * 100) + '%'}></div></div><strong>{selected.amaterasu_used}/1</strong></div>
                 <div class="usage-row"><span>Reforço</span><div class="usage-track"><div style:width={(selected.reinforcement_used / 30 * 100) + '%'}></div></div><strong>{selected.reinforcement_used}/30</strong></div>
                 <div class="usage-row"><span>Output</span><div class="usage-track"><div style:width={(selected.output_used / 30 * 100) + '%'}></div></div><strong>{selected.output_used}/30</strong></div>
+                {/if}
                 <button class="btn btn-primary fullwidth" on:click={() => sendMessage('Analise o estado atual do combate e recomende a melhor sequência')}><BrainCircuit size={17}/> Analisar combate <ArrowRight size={15}/></button>
               </div>
             {:else}
