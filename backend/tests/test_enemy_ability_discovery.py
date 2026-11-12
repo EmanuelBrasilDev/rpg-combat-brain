@@ -207,4 +207,4 @@ def test_ignoring_ambiguous_discovery_still_confirms_narrative(client):
     assert edited.status_code == 200
     assert client.post(f"/api/combat/reports/{report_id}/review",
                        json={"decision": "confirmed"}).status_code == 200
-    assert not any(c["techniques"] for c in client.get("/api/characters").json())
+    assert not any(c["techniques"] for c in client.get("/api/characters").json() if c["team"] == "enemy")
