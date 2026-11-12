@@ -113,9 +113,11 @@ def undo_last() -> dict | None:
         _log(db, row["character_id"], "undo", after, before)
     return before
 
-def new_turn() -> list[dict]:
+def new_turn(character_id: str | None = None) -> list[dict]:
     result = []
     for sheet in list_characters():
+        if character_id is not None and sheet['id'] != character_id:
+            continue
         result.append(update_character(sheet["id"], {
             "main_actions": 2, "bonus_actions": 2, "reaction_available": True
         }, kind="new_turn"))
