@@ -19,8 +19,9 @@ class ActionValidator:
             if character[field] + uses > limit:
                 reasons.append(f"Limite de uso de {ability} excedido.")
         costs = [self.energy.cost(m["id"]) for m in moves]
-        known_sum = sum(c.value or 0 for c in costs)
-        # Para custos não validados, não se pode declarar inequivocamente acessível.
-        if character["ea"] is not None and known_sum > character["ea"]:
-            reasons.append("EA insuficiente até para os custos indicados.")
+        confirmed_sum = sum(c.value or 0 for c in costs if c.status == "confirmed")
+        # Custos originais podem cair com Votos/Eficiência; só rejeitamos
+        # quando já faltar EA até para valores confirmados.
+        if character["ea"] is not None and confirmed_sum > character["ea"]:
+            reasons.append("EA insuficiente para os custos confirmados.")
         return len(reasons) == 0, reasons
