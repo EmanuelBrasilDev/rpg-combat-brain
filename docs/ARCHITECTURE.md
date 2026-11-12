@@ -46,3 +46,5 @@ Um assistente de RPG que **não depende de LLM nem de API de IA**. A conversaç�
 CI: o frontend deve incluir o marcador `%sveltekit.head%` no template e manter as fichas inacessíveis a visitantes sem autenticação no futuro deploy.
 
 Validação posterior: confirmar também o rastreamento de usos de Reforço e Output, a seleção de variantes e a checagem dos limites de 30 utilizações.
+
+Nota de isolamento: fichas de aliados/inimigos não devem exibir contadores específicos do kit do Akira sem dados correspondentes.
