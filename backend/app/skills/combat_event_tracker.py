@@ -41,6 +41,17 @@ class CombatEventTracker:
         actor = next((c for c in characters if c["id"] == character_id), None)
         if actor is None:
             return None
+        # Somente um resultado explicitamente NATURAL de d20 pode ser
+        # associado ao limiar crítico. Totais somados a bônus não qualificam.
+        if actor["id"] == "akira" and actor.get("mega_brain_active"):
+            for roll in rolls:
+                context = normalize(roll.get("context") or "")
+                if (roll["actor"] == "player" and roll["total"] is not None
+                    and re.search(r"\bd20\b", context)
+                    and re.search(r"\b(?:natural|puro|sem modificador|sem bonus)\b", context)):
+                    roll["mega_brain_critical"] = MegaBrainSkill.is_critical(
+                        actor, roll["total"]
+                    )
         detected = []
         for item in load_catalog()["abilities"]:
             if normalize(item["name"]) in text:
@@ -124,6 +135,11 @@ class CombatEventTracker:
             warnings.append("Técnicas reveladas ficam pendentes até você confirmar nome, inimigo e cooldown. Dados não informados não serão inventados.")
         if not updates and not discoveries:
             warnings.append("Nenhuma atualização automática de ficha identificada; o relato será apenas lembrado.")
+        if any(roll.get("mega_brain_critical") is True for roll in rolls):
+            warnings.append(
+                "Mega Brain: rolagem NATURAL de d20 15+ identificada como crítico; "
+                "isso não altera automaticamente o contador de Kokusen."
+            )
         if rolls and any(roll["total"] is None for roll in rolls):
             warnings.append("Expressões de dados sem resultado foram mantidas como fórmulas, não como rolagens executadas.")
         return {
