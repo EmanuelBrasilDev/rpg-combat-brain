@@ -3,6 +3,17 @@ from pydantic import BaseModel, Field, ConfigDict
 
 Team = Literal["player", "ally", "enemy"]
 
+class CombatTechnique(BaseModel):
+    """Uma técnica cadastrada numa ficha. Não pressupõe efeito oficial."""
+    name: str = Field(min_length=1, max_length=100)
+    damage: str | None = Field(default=None, max_length=120)
+    ea_cost: int | None = Field(default=None, ge=0)
+    cooldown: int | None = Field(default=None, ge=0)
+    effect: str | None = Field(default=None, max_length=400)
+    accuracy_bonus: str | None = Field(default=None, max_length=100)
+    status: Literal["user_provided", "synthetic", "placeholder", "confirmed"] = "user_provided"
+
+
 class Character(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
@@ -28,6 +39,15 @@ class Character(BaseModel):
     reverse_used: int = Field(default=0, ge=0, le=20)
     effects: list[str] = Field(default_factory=list)
     notes: str = Field(default="", max_length=3000)
+    tier: str | None = Field(default=None, max_length=80)
+    reinforcement_level: int | None = Field(default=None, ge=0, le=10)
+    output_level: int | None = Field(default=None, ge=0, le=10)
+    reverse_level: int | None = Field(default=None, ge=0, le=10)
+    domain_level: int | None = Field(default=None, ge=0, le=10)
+    techniques: list[CombatTechnique] = Field(default_factory=list, max_length=60)
+    extra_metrics: dict[str, int | str | bool | None] = Field(default_factory=dict)
+    sheet_origin: Literal["manual", "user_example", "synthetic"] = "manual"
+    origin_warning: str = Field(default="", max_length=600)
 
 class CreateCharacter(BaseModel):
     name: str = Field(min_length=1, max_length=80)
@@ -43,6 +63,7 @@ class ChatResponse(BaseModel):
     alternatives: list[dict] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     requires_confirmation: bool = False
+    report_id: int | None = None
 
 class BattleEvent(BaseModel):
     id: int

@@ -51,12 +51,12 @@ def _log(db, character_id, kind, before, after):
 def list_characters() -> list[dict]:
     with connect() as db:
         rows = db.execute("SELECT payload FROM characters ORDER BY CASE json_extract(payload,'$.team') WHEN 'player' THEN 0 WHEN 'ally' THEN 1 ELSE 2 END, id").fetchall()
-    return [json.loads(row["payload"]) for row in rows]
+    return [Character.model_validate(json.loads(row["payload"])).model_dump() for row in rows]
 
 def get_character(id: str) -> dict | None:
     with connect() as db:
         row = db.execute("SELECT payload FROM characters WHERE id=?", (id,)).fetchone()
-    return json.loads(row["payload"]) if row else None
+    return Character.model_validate(json.loads(row["payload"])).model_dump() if row else None
 
 def create_character(name: str, team: str) -> dict:
     sheet = Character(id=str(uuid.uuid4())[:8], name=name, team=team).model_dump()
@@ -65,6 +65,28 @@ def create_character(name: str, team: str) -> dict:
                    (sheet["id"], json.dumps(sheet, ensure_ascii=False)))
         _log(db, sheet["id"], "created", None, sheet)
     return sheet
+
+def create_from_enemy(profile) -> dict:
+    """Só chamado após ação explícita do jogador: cópia editável, nunca mudança no adversário de teste."""
+    origin_label = ("Ficha sintética: técnicas e capacidades precisam de validação do mestre."
+                    if profile.origin == "synthetic" else
+                    "Ficha de referência: valores do exemplo do jogador; técnicas ausentes permanecem pendentes.")
+    sheet = Character(
+        id=str(uuid.uuid4())[:8], name=profile.name, team="enemy",
+        hp=profile.hp, ea=profile.ea, spirit=profile.spirit,
+        dexterity=profile.dexterity, tier=profile.tier,
+        reinforcement_level=profile.reinforcement_level,
+        output_level=profile.output_level, reverse_level=profile.reverse_level,
+        domain_level=profile.domain_level, extra_metrics=profile.extra_metrics,
+        techniques=[tech.model_dump() for tech in profile.techniques],
+        sheet_origin=profile.origin, origin_warning=origin_label
+    ).model_dump()
+    with connect() as db:
+        db.execute("INSERT INTO characters VALUES(?,?)",
+                   (sheet["id"], json.dumps(sheet, ensure_ascii=False)))
+        _log(db, sheet["id"], "created_from_enemy_forge", None, sheet)
+    return sheet
+
 
 def update_character(id: str, changes: dict, kind: str = "edited") -> dict | None:
     with connect() as db:

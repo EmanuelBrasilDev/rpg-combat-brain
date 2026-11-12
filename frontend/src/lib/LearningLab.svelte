@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import ExperiencePanel from '$lib/ExperiencePanel.svelte';
   import {
     AlertTriangle, ArrowRight, Beaker, BookOpen, BrainCircuit,
     CheckCircle2, ChevronRight, Database, Dices, FlaskConical,
@@ -8,6 +9,7 @@
   import { api, type EnemyArchetype, type EnemyProfile, type EnemyTemplate, type LabScenario,
     type LearningRun, type BenchmarkSummary } from '$lib/api';
 
+  export let onEnemyAdded: () => Promise<void>;
   let template: EnemyTemplate = 'procedural';
   let archetype: EnemyArchetype = 'balanced';
   let difficulty = 2;
@@ -44,6 +46,17 @@
       latestRun = null;
       summary = null;
       notice = 'Adversário criado no laboratório. A ficha real de combate não foi modificada.';
+    } catch (error) { warning = error instanceof Error ? error.message : String(error); }
+    finally { busy = false; }
+  }
+
+  async function adopt() {
+    if (!selected || busy) return;
+    busy = true; warning = ''; notice = '';
+    try {
+      await api.adoptEnemy(selected.id);
+      await onEnemyAdded();
+      notice = 'Ficha adicionada aos inimigos de combate. Revise atributos e técnicas antes da batalha.';
     } catch (error) { warning = error instanceof Error ? error.message : String(error); }
     finally { busy = false; }
   }
@@ -91,8 +104,8 @@
   <div class="page-heading">
     <div>
       <div class="eyebrow"><span></span> MODO LABORATÓRIO</div>
-      <h1>Enemy Forge <em>&amp; Learning Lab.</em></h1>
-      <p>Gere adversários para testes e avalie as decisões do Combat Brain sem modificar a batalha real.</p>
+      <h1>Enemy Forge <em>&amp; Learning Mode.</em></h1>
+      <p>Gere fichas de inimigos para utilizar com suas narrações. Revise experiências reais confirmadas no Learning Mode.</p>
     </div>
     <span class="mode-pill"><FlaskConical size={14}/> AMBIENTE ISOLADO</span>
   </div>
@@ -100,13 +113,15 @@
   <div class="lab-intro">
     <div class="lab-intro-icon"><Beaker size={23}/></div>
     <div>
-      <strong>Testar não é vencer — e gerar não é estabelecer uma regra.</strong>
-      <p>As avaliações registram escolhas, cobertura e lacunas do motor atual. Não calculam taxa de vitória, não simulam todas as ações inimigas e não alteram automaticamente os pesos estratégicos.</p>
+      <strong>Você narra o combate, o agente acompanha as decisões.</strong>
+      <p>O Enemy Forge cria fichas editáveis de inimigos; após copiá-las para o combate, você informa habilidades, rolagens e resultados. Os relatos confirmados alimentam o aprendizado. Os benchmarks sintéticos continuam opcionais.</p>
     </div>
   </div>
 
   {#if warning}<div class="lab-alert"><AlertTriangle size={18}/>{warning}</div>{/if}
   {#if notice}<div class="lab-success"><CheckCircle2 size={18}/>{notice}</div>{/if}
+
+  <ExperiencePanel />
 
   <div class="lab-grid">
     <section class="panel lab-controls">
@@ -192,8 +207,10 @@
             {/each}
           </div>
           <details class="assumptions"><summary><AlertTriangle size={14}/> Premissas e limites da geração</summary>{#each selected.assumptions as assumption}<p>{assumption}</p>{/each}</details>
+          <button class="lab-adopt" disabled={busy} on:click={adopt}><Swords size={17}/> Adicionar esta ficha aos inimigos do combate</button>
+          <p class="lab-explain">Esta ação cria uma cópia editável na ficha real. A origem fictícia ou incompleta continuará identificada.</p>
           <div class="lab-divider"></div>
-          <div class="section-caption"><Play size={14}/> TESTE INDIVIDUAL</div>
+          <div class="section-caption"><Play size={14}/> TESTE SINTÉTICO OPCIONAL</div>
           <div class="two eval-fields">
             <label>Cenário
               <select bind:value={scenario}>
@@ -209,6 +226,8 @@
     </section>
   </div>
 
+  <details class="optional-benchmarks">
+    <summary>Exibir laboratório de benchmarks sintéticos (opcional)</summary>
   <div class="lab-grid below">
     <section class="panel lab-benchmark">
       <div class="lab-head"><span class="head-icon lavender"><RotateCcw size={19}/></span><div><h2>Bateria de cenários</h2><p>Teste várias sementes e situações de combate</p></div></div>
@@ -260,10 +279,11 @@
       </div>
     </section>
   </div>
+  </details>
 </div>
 
 <style>
-.lab-page{min-width:0}.lab-page :global(.page-heading){margin-bottom:23px}
+.lab-adopt{background:#2c5943;border:1px solid #498166;color:#e4f8ea;font-size:11px;font-weight:800;padding:12px;border-radius:9px;width:100%;display:flex;align-items:center;justify-content:center;gap:9px;margin:22px 0 10px}.lab-adopt:hover{background:#3b7557}.lab-adopt:disabled{opacity:.5}.optional-benchmarks{margin-top:20px}.optional-benchmarks>summary{cursor:pointer;font-size:12px;color:#b9c5d4;font-weight:750;border:1px solid #344254;padding:14px;border-radius:10px;background:#1b2631}.lab-page{min-width:0}.lab-page :global(.page-heading){margin-bottom:23px}
 .lab-intro,.lab-alert,.lab-success{display:flex;align-items:flex-start;gap:13px;padding:17px 20px;border-radius:12px;margin:0 0 20px}
 .lab-intro{background:linear-gradient(95deg,#24283b,#1b2634);border:1px solid #343b51}
 .lab-intro-icon{color:#b5a6f9;background:#34344f;padding:11px;border-radius:11px}

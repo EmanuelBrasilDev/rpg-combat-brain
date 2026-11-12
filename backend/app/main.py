@@ -1,12 +1,17 @@
 """FastAPI local — a mesma API poderá ser hospedada separadamente no futuro."""
 from contextlib import asynccontextmanager
+from typing import Literal
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from .catalog import load_catalog
 from .models import ChatRequest, ChatResponse, CreateCharacter
-from . import store, chat_store, lab_store
+from . import store, chat_store, lab_store, combat_store
+from .combat_store import CombatFeedback, CombatReportConflict
+from .skills.combat_event_tracker import CombatEventTracker
+from .skills.combat_context_analyzer import CombatContextAnalyzer
+from .skills.combat_learning import CombatLearningSkill
 from .lab_models import EnemyProfile, GenerateEnemyRequest, EvaluateRequest, BatchRequest
 from .skills.enemy_forge import EnemyForgeSkill
 from .skills.learning_lab import LearningLabSkill, SCENARIOS
@@ -21,6 +26,7 @@ from .skills.battle_update import BattleUpdateSkill
 async def lifespan(app: FastAPI):
     store.initialize()
     lab_store.initialize()
+    combat_store.initialize()
     yield
 
 app = FastAPI(title="RPG Combat Brain", version="0.1.0", lifespan=lifespan)
@@ -40,6 +46,9 @@ akira_skill = AkiraProfileSkill()
 updates = BattleUpdateSkill()
 enemy_forge = EnemyForgeSkill()
 learning_lab = LearningLabSkill()
+tracker = CombatEventTracker()
+context_skill = CombatContextAnalyzer()
+combat_learning = CombatLearningSkill()
 
 @app.get("/api/health")
 def health():
@@ -100,6 +109,17 @@ def chat(body: ChatRequest):
     warnings = []
     alternatives = []
     needs_confirmation = False
+    report_id = None
+    draft = tracker.draft(body.message, character["id"], sheets)
+    # Um relato é uma proposta, não um evento aplicado à ficha.
+    if draft and parsed.intent not in ("update", "undo", "new_turn", "rules"):
+        report_id = combat_store.add_draft(draft)["id"]
+        needs_confirmation = True
+    context = context_skill.summarize(
+        character, sheets,
+        combat_store.list_reports("confirmed", 30),
+        combat_store.list_reports("pending", 30)
+    )
 
     if parsed.intent == "update" and parsed.update:
         character_id, field, value = parsed.update
@@ -116,6 +136,29 @@ def chat(body: ChatRequest):
         answer = "Novo turno de " + character['name'] + " registrado: ações principais e bônus restauradas, reação disponível. Efeitos e cooldowns não foram alterados automaticamente."
     elif parsed.intent == "unknown_character":
         answer = "Não encontrei essa ficha. Confira o nome exato no painel de personagens."
+    elif parsed.intent == "combat_report":
+        if report_id is not None:
+            rolls = draft.get("rolls", []) if draft else []
+            results = [
+                f"{item['actor']}: {item['total']}" + (
+                    f" ({item['expression']})" if item.get("expression") else ""
+                ) for item in rolls if item.get("total") is not None
+            ]
+            changes = draft.get("proposed_updates", {}) if draft else {}
+            summary = [
+                f"**Relato #{report_id} preparado para revisão.**",
+                f"Técnicas reconhecidas: {', '.join(draft['techniques']) or 'nenhuma identificada'}.",
+                f"Rolagens informadas: {', '.join(results) or 'nenhum total explícito'}.",
+                f"Resultado narrado: {draft['outcome']}.",
+                f"Estados finais candidatos: {changes or 'nenhum'}",
+                "Use **Confirmar relato** no painel para incorporá-lo à memória de combate. "
+                "HP/EA só serão alterados por valores FINAIS explícitos; não há descontos automáticos."
+            ]
+            answer = "\n".join(summary)
+            warnings.extend(draft["warnings"])
+        else:
+            answer = "Não identifiquei um acontecimento concluído com confiança. "
+            answer += "Descreva o que foi executado e as rolagens, ou atualize a ficha diretamente."
     elif parsed.intent == "rules":
         answer = rulebook_skill.turn_rules() + "\nHá também regras específicas e pendências listadas no arsenal do site."
     elif parsed.intent == "ability":
@@ -129,10 +172,11 @@ def chat(body: ChatRequest):
         warnings = ["Campos desconhecidos são mantidos como pendentes, não estimados."]
     elif parsed.intent == "tactics":
         enemies = [c for c in sheets if c["team"] == "enemy"]
-        report = response_skill.format(decision.analyze(character, enemies, body.message))
+        prompt = context_skill.tactical_prompt(body.message, context)
+        report = response_skill.format(decision.analyze(character, enemies, prompt))
         answer = report["answer"]
         alternatives = report["alternatives"]
-        warnings = report["warnings"]
+        warnings = report["warnings"] + context["warnings"]
     else:
         answer = (
             "Sou o RPG Combat Brain, um assistente de regras e estratégia local.\n"
@@ -143,11 +187,45 @@ def chat(body: ChatRequest):
             "Ações planejadas NÃO alteram recursos até serem confirmadas."
         )
         needs_confirmation = True
+    if report_id is not None and parsed.intent != "combat_report":
+        answer += f"\n\n**Relato #{report_id} aguardando confirmação.** "
+        answer += "A estratégia acima não considera o relato pendente como fato. Revise no painel de eventos."
+        warnings.extend(draft["warnings"])
     chat_store.add_message("user", body.message)
-    chat_store.add_message("assistant", answer, {"alternatives": alternatives, "warnings": warnings})
+    chat_store.add_message("assistant", answer, {"alternatives": alternatives, "warnings": warnings, "report_id": report_id})
     return ChatResponse(intent=parsed.intent, answer=answer,
                         alternatives=alternatives, warnings=warnings,
-                        requires_confirmation=needs_confirmation)
+                        requires_confirmation=needs_confirmation, report_id=report_id)
+
+
+# RELATOS DE COMBATE REAIS — confirmação humana, sem subtração automática.
+@app.get("/api/combat/reports")
+def reports(status: Literal["pending", "confirmed", "discarded"] | None = None):
+    return combat_store.list_reports(status)
+
+@app.post("/api/combat/reports/{report_id}/review")
+def review_report(report_id: int, decision: Literal["confirmed", "discarded"] = Body(embed=True)):
+    try:
+        report = combat_store.review(report_id, decision)
+    except CombatReportConflict as error:
+        raise HTTPException(409, str(error))
+    if report is None:
+        raise HTTPException(404, "Relato não encontrado.")
+    return report
+
+@app.post("/api/combat/reports/{report_id}/feedback")
+def feedback_report(report_id: int, body: CombatFeedback):
+    try:
+        report = combat_store.set_feedback(report_id, body)
+    except CombatReportConflict as error:
+        raise HTTPException(409, str(error))
+    if report is None:
+        raise HTTPException(404, "Relato não encontrado.")
+    return report
+
+@app.get("/api/learning/overview")
+def learning_overview():
+    return combat_learning.overview(combat_store.list_reports("confirmed", 150))
 
 
 # LABORATÓRIO DE APRENDIZADO — dados simulados NUNCA alteram a batalha real.
@@ -198,3 +276,12 @@ def benchmark_lab(body: BatchRequest):
         run = learning_lab.evaluate(profile, character, scenarios[index % len(scenarios)])
         result.append(lab_store.add_run(run))
     return {"summary": learning_lab.benchmark_summary(result), "runs": result}
+
+
+@app.post("/api/lab/enemies/{enemy_id}/adopt", status_code=201)
+def adopt_lab_enemy(enemy_id: str):
+    """Usuário escolhe explicitamente copiar uma ficha do laboratório para o combate."""
+    enemy = lab_store.get_enemy(enemy_id)
+    if enemy is None:
+        raise HTTPException(404, "Ficha de laboratório não encontrada.")
+    return store.create_from_enemy(EnemyProfile.model_validate(enemy))

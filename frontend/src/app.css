@@ -350,3 +350,17 @@ main { padding: 35px 38px 42px; max-width: 1760px; margin: 0 auto; }
   .suggestions button { font-size: 9px; padding: 6px 2px; }
   .sheet-actions { flex-wrap: wrap; }
 }
+
+/* Fichas extensíveis — técnicas individualizadas para aliados e inimigos */
+.sheet-warning { display:flex;align-items:flex-start;gap:9px;color:#efb59f;background:#392c2b;border:1px solid #60443d;padding:13px;border-radius:9px;font-size:11px;line-height:1.6 }
+.sheet-warning svg { flex-shrink:0 }
+.sheet-hint { color:#899aaa;font-size:11px;line-height:1.6;margin:-8px 0 15px }
+.technique-editor { background:#1b2631;border:1px solid #344253;border-radius:10px;padding:16px;margin-bottom:12px }
+.technique-heading { display:flex;align-items:center;justify-content:space-between;margin-bottom:13px }
+.technique-heading span { font-size:10px;font-weight:800;letter-spacing:1px;color:#e7a28d }
+.technique-heading button { display:grid;place-items:center;background:#382b31;color:#d9989a;border:1px solid #584049;border-radius:6px;height:30px;width:30px }
+.technique-effect { margin-top:13px;display:grid;gap:8px;color:#9eafc0;font-size:11px;font-weight:700 }
+.technique-effect input,.new-technique input { color:#e9eff6;border:1px solid #344051;background:#111821;border-radius:9px;min-height:39px;padding:10px 12px;font-size:12px;width:100%;outline:none }
+.new-technique { display:flex;gap:9px;align-items:center;margin:16px 0 24px }
+.new-technique input { flex:1;min-width:0 }
+@media(max-width:600px) { .new-technique { flex-direction:column;align-items:stretch } }

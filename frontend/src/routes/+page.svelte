@@ -8,8 +8,9 @@
     Swords, Target, Trash2, UserRound, UsersRound,
     X, Zap
   } from 'lucide-svelte';
-  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team } from '$lib/api';
+  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team, type CombatReport, type CombatTechnique } from '$lib/api';
   import LearningLab from '$lib/LearningLab.svelte';
+  import CombatJournal from '$lib/CombatJournal.svelte';
 
   type View = 'overview' | 'characters' | 'abilities' | 'history' | 'lab';
   let view: View = 'overview';
@@ -17,6 +18,8 @@
   let messages: ChatMessage[] = [];
   let catalog: Catalog | null = null;
   let events: BattleEvent[] = [];
+  let reports: CombatReport[] = [];
+  let newTechniqueName = '';
   let selectedId = 'akira';
   let selected: Character | null = null;
   let loading = true;
@@ -63,13 +66,14 @@
   }
   async function refresh() {
     try {
-      const [c, m, e, cat] = await Promise.all([
-        api.characters(), api.messages(), api.events(), api.catalog()
+      const [c, m, e, cat, r] = await Promise.all([
+        api.characters(), api.messages(), api.events(), api.catalog(), api.combatReports()
       ]);
       characters = c;
       messages = m;
       events = e;
       catalog = cat;
+      reports = r;
       apiError = '';
       if (!c.some((item) => item.id === selectedId) && c.length) selectedId = c[0].id;
     } catch (error) {
@@ -124,10 +128,11 @@
     messageEnd?.scrollIntoView({ behavior: 'smooth' });
     try {
       await api.chat(text, selected.id);
-      const [fresh, sheets, history] = await Promise.all([api.messages(), api.characters(), api.events()]);
+      const [fresh, sheets, history, freshReports] = await Promise.all([api.messages(), api.characters(), api.events(), api.combatReports()]);
       messages = fresh;
       characters = sheets;
       events = history;
+      reports = freshReports;
       apiError = '';
       await tick();
       messageEnd?.scrollIntoView({ behavior: 'smooth' });
@@ -138,6 +143,34 @@
       pending = false;
     }
   }
+  async function reviewNarrative(reportId: number, decision: 'confirmed' | 'discarded') {
+    await api.reviewReport(reportId, decision);
+    await refresh();
+    notify(decision === 'confirmed' ? 'Relato confirmado. O contexto e a ficha foram atualizados sem duplo desconto.' : 'Relato descartado.');
+  }
+  async function updateTechnique(index: number, field: keyof CombatTechnique, value: unknown) {
+    if (!selected) return;
+    const techniques = (selected.techniques ?? []).map((t,i) => i === index ? {...t, [field]: value} : t);
+    await update('techniques', techniques);
+  }
+  async function addTechnique() {
+    if (!selected || !newTechniqueName.trim()) return;
+    const technique: CombatTechnique = {
+      name: newTechniqueName.trim(), damage: null, ea_cost: null, cooldown: null,
+      effect: null, accuracy_bonus: null, status: 'user_provided'
+    };
+    await update('techniques', [...(selected.techniques ?? []), technique]);
+    newTechniqueName = '';
+  }
+  async function removeTechnique(index: number) {
+    if (!selected) return;
+    await update('techniques', (selected.techniques ?? []).filter((_,i) => i !== index));
+  }
+  async function adoptEnemy() {
+    await refresh();
+    notify('Inimigo adicionado ao combate. Você já pode selecionar e revisar a ficha.');
+  }
+
   async function undo() {
     if (pending) return;
     pending = true;
@@ -201,7 +234,7 @@
         <button class:nav-active={view === 'overview'} on:click={() => changeView('overview')}><Activity size={18}/> Visão geral <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'characters'} on:click={() => changeView('characters')}><UserRound size={18}/> Fichas de combate <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'abilities'} on:click={() => changeView('abilities')}><Flame size={18}/> Arsenal de técnicas <ChevronRight size={15} class="nav-chevron"/></button>
-        <button class:nav-active={view === 'lab'} on:click={() => changeView('lab')}><FlaskConical size={18}/> Learning Lab <ChevronRight size={15} class="nav-chevron"/></button>
+        <button class:nav-active={view === 'lab'} on:click={() => changeView('lab')}><FlaskConical size={18}/> Enemy Forge & Learning <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'history'} on:click={() => changeView('history')}><History size={18}/> Histórico <ChevronRight size={15} class="nav-chevron"/></button>
       </nav>
 
@@ -359,6 +392,7 @@
             {/if}
           </section>
         </div>
+        <CombatJournal {reports} selectedId={selectedId} onReview={reviewNarrative}/>
         <div class="bottom-info"><span><Check size={14}/> Decisões auditáveis</span><span><Shield size={14}/> Regras antes de recomendações</span><span><Database size={14}/> Histórico local persistente</span></div>
 
       {:else if view === 'characters'}
@@ -392,6 +426,17 @@
                 <label>Espírito (ESP)<input type="number" min="0" value={selected.spirit ?? ''} on:change={(e) => update('spirit', parseOptionalNumber(e.currentTarget.value))}/></label>
                 <label>Destreza (DES)<input type="number" min="0" value={selected.dexterity ?? ''} on:change={(e) => update('dexterity', parseOptionalNumber(e.currentTarget.value))}/></label>
               </div>
+              <div class="field-group-title">Capacidades, origem e proficiências</div>
+              {#if selected.origin_warning}
+                <p class="sheet-warning"><AlertCircle size={16}/>{selected.origin_warning}</p>
+              {/if}
+              <div class="field-grid">
+                <label>Categoria / Grau<input value={selected.tier ?? ''} placeholder="Ex.: Grau 3" on:change={(e) => update('tier', e.currentTarget.value || null)}/></label>
+                <label>Nível de Reforço<input type="number" min="0" max="10" value={selected.reinforcement_level ?? ''} on:change={(e) => update('reinforcement_level', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Nível de Output<input type="number" min="0" max="10" value={selected.output_level ?? ''} on:change={(e) => update('output_level', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Nível de Energia Reversa<input type="number" min="0" max="10" value={selected.reverse_level ?? ''} on:change={(e) => update('reverse_level', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Nível de Domínio<input type="number" min="0" max="10" value={selected.domain_level ?? ''} on:change={(e) => update('domain_level', parseOptionalNumber(e.currentTarget.value))}/></label>
+              </div>
               <div class="field-group-title">Estado e disponibilidade</div>
               <div class="field-grid">
                 <label>Forma ativa<select value={selected.form} on:change={(e) => update('form', e.currentTarget.value)}><option value="none">Forma base</option><option value="scales">Dragon Scales</option><option value="assault">Dragon Assault</option></select></label>
@@ -406,6 +451,23 @@
                 <label>Usos de Output<input type="number" min="0" max="30" value={selected.output_used} on:change={(e) => update('output_used', Number(e.currentTarget.value))}/></label>
                 <label>Usos de Energia Reversa<input type="number" min="0" max="20" value={selected.reverse_used} on:change={(e) => update('reverse_used', Number(e.currentTarget.value))}/></label>
               </div>
+              <div class="field-group-title">Técnicas cadastradas na ficha</div>
+              <p class="sheet-hint">As técnicas de inimigos podem ser editadas. Fórmulas e custos pendentes permanecem sem valor até serem confirmados; o motor atual ainda não executa todas essas técnicas automaticamente.</p>
+              {#each selected.techniques ?? [] as technique, i}
+                <div class="technique-editor">
+                  <div class="technique-heading"><span>TÉCNICA {i + 1}</span><button on:click={() => removeTechnique(i)} title="Remover técnica" aria-label="Remover técnica"><Trash2 size={15}/></button></div>
+                  <div class="field-grid">
+                    <label>Nome<input value={technique.name} on:change={(e) => updateTechnique(i,'name',e.currentTarget.value)}/></label>
+                    <label>Dano (fórmula)<input value={technique.damage ?? ''} placeholder="Ex.: 5d8 + 3d2" on:change={(e) => updateTechnique(i,'damage',e.currentTarget.value || null)}/></label>
+                    <label>EA por uso<input type="number" min="0" value={technique.ea_cost ?? ''} on:change={(e) => updateTechnique(i,'ea_cost',parseOptionalNumber(e.currentTarget.value))}/></label>
+                    <label>Cooldown (turnos)<input type="number" min="0" value={technique.cooldown ?? ''} on:change={(e) => updateTechnique(i,'cooldown',parseOptionalNumber(e.currentTarget.value))}/></label>
+                    <label>Bônus de acerto<input value={technique.accuracy_bonus ?? ''} on:change={(e) => updateTechnique(i,'accuracy_bonus',e.currentTarget.value || null)}/></label>
+                    <label>Origem<select value={technique.status} on:change={(e) => updateTechnique(i,'status',e.currentTarget.value)}><option value="user_provided">Informada</option><option value="confirmed">Confirmada</option><option value="synthetic">Sintética</option><option value="placeholder">Pendente</option></select></label>
+                  </div>
+                  <label class="technique-effect">Efeito<input value={technique.effect ?? ''} on:change={(e) => updateTechnique(i,'effect',e.currentTarget.value || null)}/></label>
+                </div>
+              {/each}
+              <div class="new-technique"><input aria-label="Nome da nova técnica" placeholder="Nome da nova técnica" bind:value={newTechniqueName}/><button class="btn btn-outline" disabled={!newTechniqueName.trim()} on:click={addTechnique}><Plus size={15}/> Adicionar técnica</button></div>
               <div class="field-grid field-full">
                 <label>Efeitos ativos <small>(separados por vírgula)</small><input value={selected.effects.join(', ')} on:change={(e) => update('effects', e.currentTarget.value.split(',').map((x) => x.trim()).filter(Boolean))} placeholder="Ex.: queimadura, reforço ativo"/></label>
                 <label>Observações de combate<textarea rows="3" value={selected.notes} on:change={(e) => update('notes', e.currentTarget.value)} placeholder="Informações confirmadas do mestre, limitações, fraquezas..."></textarea></label>
@@ -443,7 +505,7 @@
         </div>
 
       {:else if view === 'lab'}
-        <LearningLab/>
+        <LearningLab onEnemyAdded={adoptEnemy}/>
       {:else if view === 'history'}
         <div class="page-heading">
           <div><div class="eyebrow"><span></span> MEMÓRIA PERSISTENTE</div><h1>Histórico de <em>Combate.</em></h1><p>Cada alteração confirmada na ficha fica registrada para revisão.</p></div>
