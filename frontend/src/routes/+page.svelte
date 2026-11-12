@@ -8,7 +8,7 @@
     Swords, Target, Trash2, UserRound, UsersRound,
     X, Zap
   } from 'lucide-svelte';
-  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team, type CombatReport, type CombatTechnique } from '$lib/api';
+  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team, type CombatReport, type CombatTechnique, type EnemyDiscoveryEdit } from '$lib/api';
   import LearningLab from '$lib/LearningLab.svelte';
   import CombatJournal from '$lib/CombatJournal.svelte';
 
@@ -142,6 +142,11 @@
     } finally {
       pending = false;
     }
+  }
+  async function saveEnemyDiscovery(reportId: number, edit: EnemyDiscoveryEdit) {
+    await api.saveDiscovery(reportId, edit);
+    reports = await api.combatReports();
+    notify('Técnica salva no rascunho. Confirme o relato para incluí-la na ficha inimiga.');
   }
   async function reviewNarrative(reportId: number, decision: 'confirmed' | 'discarded') {
     await api.reviewReport(reportId, decision);
@@ -392,7 +397,7 @@
             {/if}
           </section>
         </div>
-        <CombatJournal {reports} selectedId={selectedId} onReview={reviewNarrative}/>
+        <CombatJournal {reports} {characters} selectedId={selectedId} onReview={reviewNarrative} onSaveDiscovery={saveEnemyDiscovery}/>
         <div class="bottom-info"><span><Check size={14}/> Decisões auditáveis</span><span><Shield size={14}/> Regras antes de recomendações</span><span><Database size={14}/> Histórico local persistente</span></div>
 
       {:else if view === 'characters'}
