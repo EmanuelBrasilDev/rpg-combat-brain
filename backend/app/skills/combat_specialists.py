@@ -1,6 +1,7 @@
 """Especialistas com responsabilidades específicas para exploração estratégica."""
 from .energy_optimizer import EnergyOptimizer
 from .curse_grade import CurseGradeSkill
+from .attributes import ATTRIBUTE_FIELDS, ATTRIBUTE_LABELS
 
 class OpeningArchitectSkill:
     def choose(self, candidates: list[dict]) -> list[dict]:
@@ -33,8 +34,9 @@ class EnemyAnalysisSkill:
             return ["Sem fichas de inimigos para comparação."]
         notes = []
         for enemy in enemies:
-            missing = [field for field in ("hp", "ea", "spirit", "dexterity")
+            missing = [field for field in ("hp", "ea", *ATTRIBUTE_FIELDS)
                        if enemy.get(field) is None]
             if missing:
-                notes.append(f"{enemy['name']}: {', '.join(missing)} não informados.")
+                labels = [ATTRIBUTE_LABELS.get(field, field.upper()) for field in missing]
+                notes.append(f"{enemy['name']}: {', '.join(labels)} não informados.")
         return notes
