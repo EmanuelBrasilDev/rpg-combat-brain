@@ -14,7 +14,8 @@ def normalize(text: str) -> str:
 
 def interpret(message: str, characters: list[dict]) -> Interpretation:
     raw = normalize(message).strip()
-    if (raw.startswith("/ficha-texto") or
+    if ((raw.startswith("transform") and "ficha" in raw and "em texto" in raw) or
+            raw.startswith("/ficha-texto") or
             any(phrase in raw for phrase in (
                 "ficha em texto", "ficha estilizada", "ficha formatada",
                 "exportar ficha", "exporte a ficha", "formate a ficha",
