@@ -133,6 +133,31 @@ def update_character(id: str, changes: dict, kind: str = "edited") -> dict | Non
         _log(db, id, kind, before, after)
         return after
 
+def mega_brain_action(character_id: str, action: str) -> dict | None:
+    """Ação explícita do jogador; transação única, sem rolar dados ou inventar recursos."""
+    if action not in ("activate", "interrupt"):
+        raise ValueError("Ação inválida.")
+    with connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT payload FROM characters WHERE id=?", (character_id,)).fetchone()
+        if row is None:
+            return None
+        sheet = Character.model_validate(json.loads(row["payload"])).model_dump()
+        if sheet["id"] != "akira":
+            raise ValueError("Mega Brain está cadastrada apenas para Akira.")
+        skill = MegaBrainSkill()
+        if action == "activate":
+            changes = skill.activate_changes(sheet)
+        else:
+            changes = skill.interrupt_changes(sheet)
+        after = Character.model_validate({**sheet, **changes}).model_dump()
+        if after != sheet:
+            db.execute("UPDATE characters SET payload=? WHERE id=?",
+                       (json.dumps(after, ensure_ascii=False), character_id))
+            _log(db, character_id, "mega_brain_" + action, sheet, after)
+        return after
+
+
 def list_events(limit: int = 40) -> list[dict]:
     with connect() as db:
         rows = db.execute("SELECT * FROM events ORDER BY id DESC LIMIT ?", (min(limit, 100),)).fetchall()
