@@ -182,3 +182,27 @@ def test_formatter_never_mutates_input_and_escapes_newlines():
     assert sheet == before
     assert "# Maldição Com Nome" in output
     assert "* Técnica Sombria (?c)" in output
+
+
+def test_registered_canonical_technique_data_are_not_lost(client):
+    patch = client.patch("/api/characters/akira", json={
+        "max_hp": 700,
+        "max_ea": 800,
+        "techniques": [
+            {"name": "Crimson Dragon's Fangs", "cooldown": 2, "ea_cost": 25,
+             "damage": "39d10", "status": "confirmed"},
+            {"name": "Amaterasu", "cooldown": 4, "status": "confirmed"},
+        ],
+        "items": [
+            {"name": "Kenrykat", "damage": "9d5", "effect": "lâmina modificada"}
+        ]
+    })
+    assert patch.status_code == 200, patch.text
+    content = client.get("/api/characters/akira/export").json()["content"]
+    assert "HP (600/700)" in content
+    assert "EA (731/800)" in content
+    assert "Crimson Dragon's Fangs (0/6 usos) — cooldown 2c — EA 25; dano 39d10" in content
+    assert content.count("Crimson Dragon's Fangs") == 1
+    assert "* Cooldown de Amaterasu (4c)" in content
+    assert "* Kenrykat (9d5) — Kokusen (0/3 críticos); lâmina modificada" in content
+    assert content.count("Kenrykat") == 1
