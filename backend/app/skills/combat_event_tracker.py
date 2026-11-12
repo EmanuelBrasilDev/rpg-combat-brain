@@ -4,7 +4,7 @@ from .dice_roll_interpreter import DiceRollInterpreter, normalize
 from ..catalog import load_catalog
 
 PAST_EVENTS = re.compile(
-    r"\b(?:usou|utilizou|atacou|tentei|esquivei|bloqueei|recebi|tirei|tirou|"
+    r"\b(?:usou|utilizou|atacou|tentei|esquivei|bloqueei|recebi|tomei|tirei|tirou|"
     r"rolou|rolei|gastei|gastou|acertou|falhou|atualizei|atualizou|"
     r"ficou|sofri|perdi|consumi|consumiu|aplicou|deu\s+\d+|"
     r"executou|queimou|defendeu|desviou)\b"
