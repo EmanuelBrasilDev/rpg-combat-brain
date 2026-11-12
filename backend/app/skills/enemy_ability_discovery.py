@@ -139,6 +139,7 @@ class EnemyAbilityDiscoverySkill:
             "cooldown": proposal.get("cooldown"),
             "effect": proposal.get("effect"),
             "status": "confirmed",  # confirmado pelo jogador; não implica cânone
+            "observed": True,
         })
         existing = [CombatTechnique.model_validate(t).model_dump()
                     for t in character.get("techniques", [])]
@@ -158,5 +159,7 @@ class EnemyAbilityDiscoverySkill:
                 )
             current[field] = proposed_value
         # Manual/user-provided values become observed once a report is confirmed.
-        current["status"] = "confirmed"
+        if current.get("status") != "synthetic":
+            current["status"] = "confirmed"
+        current["observed"] = True
         return existing
