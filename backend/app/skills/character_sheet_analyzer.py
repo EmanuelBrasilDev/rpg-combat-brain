@@ -16,6 +16,17 @@ class CharacterSheetAnalyzer:
         ]
         if character['id'] == 'akira':
             fields.append(f"Fangs: {6-character['fangs_used']}/6 | Maw: {6-character['maw_used']}/6 | Críticos para Kokusen: {character['critical_count']}/3")
+        levels = [(name, character.get(field)) for name, field in (
+            ("Reforço", "reinforcement_level"), ("Output", "output_level"),
+            ("Energia Reversa", "reverse_level"), ("Domínio", "domain_level")
+        ) if character.get(field) is not None]
+        if levels:
+            fields.append("Proficiências: " + ", ".join(f"{name} Nv{value}" for name, value in levels))
+        if character.get("techniques"):
+            techniques = [t["name"] for t in character["techniques"]]
+            fields.append("Técnicas registradas: " + ", ".join(techniques[:15]))
+        if character.get("sheet_origin") == "synthetic":
+            fields.append("Atenção: ficha sintética, não oficial; requer revisão.")
         if character["effects"]:
             fields.append("Efeitos: " + ", ".join(character["effects"]))
         return "\n".join(fields)
