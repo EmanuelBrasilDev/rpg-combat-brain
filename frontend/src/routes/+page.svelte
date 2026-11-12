@@ -346,6 +346,8 @@
                 <div class="usage-row"><span>Fangs</span><div class="usage-track"><div style:width={(selected.fangs_used / 6 * 100) + '%'}></div></div><strong>{selected.fangs_used}/6</strong></div>
                 <div class="usage-row"><span>Maw</span><div class="usage-track"><div style:width={(selected.maw_used / 6 * 100) + '%'}></div></div><strong>{selected.maw_used}/6</strong></div>
                 <div class="usage-row"><span>Amaterasu</span><div class="usage-track"><div style:width={(selected.amaterasu_used * 100) + '%'}></div></div><strong>{selected.amaterasu_used}/1</strong></div>
+                <div class="usage-row"><span>Reforço</span><div class="usage-track"><div style:width={(selected.reinforcement_used / 30 * 100) + '%'}></div></div><strong>{selected.reinforcement_used}/30</strong></div>
+                <div class="usage-row"><span>Output</span><div class="usage-track"><div style:width={(selected.output_used / 30 * 100) + '%'}></div></div><strong>{selected.output_used}/30</strong></div>
                 <button class="btn btn-primary fullwidth" on:click={() => sendMessage('Analise o estado atual do combate e recomende a melhor sequência')}><BrainCircuit size={17}/> Analisar combate <ArrowRight size={15}/></button>
               </div>
             {:else}
@@ -396,6 +398,9 @@
                 <label>Maw utilizados<input type="number" min="0" max="6" value={selected.maw_used} on:change={(e) => update('maw_used', Number(e.currentTarget.value))}/></label>
                 <label>Amaterasu utilizado<input type="number" min="0" max="1" value={selected.amaterasu_used} on:change={(e) => update('amaterasu_used', Number(e.currentTarget.value))}/></label>
                 <label>Críticos acumulados<input type="number" min="0" max="3" value={selected.critical_count} on:change={(e) => update('critical_count', Number(e.currentTarget.value))}/></label>
+                <label>Usos de Reforço<input type="number" min="0" max="30" value={selected.reinforcement_used} on:change={(e) => update('reinforcement_used', Number(e.currentTarget.value))}/></label>
+                <label>Usos de Output<input type="number" min="0" max="30" value={selected.output_used} on:change={(e) => update('output_used', Number(e.currentTarget.value))}/></label>
+                <label>Usos de Energia Reversa<input type="number" min="0" max="20" value={selected.reverse_used} on:change={(e) => update('reverse_used', Number(e.currentTarget.value))}/></label>
               </div>
               <div class="field-grid field-full">
                 <label>Efeitos ativos <small>(separados por vírgula)</small><input value={selected.effects.join(', ')} on:change={(e) => update('effects', e.currentTarget.value.split(',').map((x) => x.trim()).filter(Boolean))} placeholder="Ex.: queimadura, reforço ativo"/></label>
