@@ -1,0 +1,133 @@
+"""FastAPI local — a mesma API poderá ser hospedada separadamente no futuro."""
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
+
+from .catalog import load_catalog
+from .models import ChatRequest, ChatResponse, CreateCharacter
+from . import store, chat_store
+from .skills.character_sheet_analyzer import CharacterSheetAnalyzer
+from .skills.combat_interpreter import interpret
+from .skills.tactical_decision import TacticalDecision
+from .skills.tactical_response import TacticalResponse
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    store.initialize()
+    yield
+
+app = FastAPI(title="RPG Combat Brain", version="0.1.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH"],
+    allow_headers=["Content-Type"],
+)
+
+analyzer = CharacterSheetAnalyzer()
+decision = TacticalDecision()
+response_skill = TacticalResponse()
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "mode": "local-first", "ai_api_required": False}
+
+@app.get("/api/catalog")
+def catalog():
+    return load_catalog()
+
+@app.get("/api/characters")
+def characters():
+    return store.list_characters()
+
+@app.post("/api/characters", status_code=201)
+def create_character(body: CreateCharacter):
+    return store.create_character(body.name, body.team)
+
+@app.patch("/api/characters/{id}")
+def patch_character(id: str, changes: dict = Body(...)):
+    if "id" in changes or "team" in changes:
+        raise HTTPException(400, "ID e equipe não podem ser alterados por esta rota.")
+    try:
+        updated = store.update_character(id, changes)
+    except ValidationError as error:
+        raise HTTPException(422, error.errors(include_context=False))
+    if updated is None:
+        raise HTTPException(404, "Ficha não encontrada.")
+    return updated
+
+@app.get("/api/events")
+def events():
+    return store.list_events()
+
+@app.post("/api/events/undo")
+def undo():
+    sheet = store.undo_last()
+    if sheet is None:
+        raise HTTPException(409, "Não há uma edição recente passível de desfazer.")
+    return sheet
+
+@app.post("/api/turns/next")
+def next_turn():
+    return {"characters": store.new_turn()}
+
+@app.get("/api/messages")
+def messages():
+    return chat_store.list_messages()
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat(body: ChatRequest):
+    sheets = store.list_characters()
+    character = next((c for c in sheets if c["id"] == body.character_id), None)
+    if character is None:
+        raise HTTPException(404, "Ficha ativa não encontrada.")
+    parsed = interpret(body.message, sheets)
+    warnings = []
+    alternatives = []
+    needs_confirmation = False
+
+    if parsed.intent == "update" and parsed.update:
+        character_id, field, value = parsed.update
+        try:
+            saved = store.update_character(character_id, {field: value}, kind="chat_update")
+        except ValidationError as error:
+            raise HTTPException(422, error.errors(include_context=False))
+        answer = "Atualização confirmada e registrada.\n" + analyzer.summarize(saved)
+    elif parsed.intent == "undo":
+        undone = store.undo_last()
+        answer = "Última edição desfeita.\n" + analyzer.summarize(undone) if undone else "Nenhuma edição recente disponível para desfazer."
+    elif parsed.intent == "new_turn":
+        store.new_turn()
+        answer = "Novo turno registrado: ações principais e bônus restauradas, reação disponível. Efeitos e cooldowns não foram alterados automaticamente."
+    elif parsed.intent == "unknown_character":
+        answer = "Não encontrei essa ficha. Confira o nome exato no painel de personagens."
+    elif parsed.intent == "sheet":
+        named = next((c for c in sheets if c["name"].casefold() in body.message.casefold()), None)
+        if any(word in body.message.casefold() for word in ("todos", "aliados", "inimigos", "equipe")):
+            answer = analyzer.compare(sheets)
+        else:
+            answer = analyzer.summarize(named or character)
+        warnings = ["Campos desconhecidos são mantidos como pendentes, não estimados."]
+    elif parsed.intent == "tactics":
+        enemies = [c for c in sheets if c["team"] == "enemy"]
+        report = response_skill.format(decision.analyze(character, enemies, body.message))
+        answer = report["answer"]
+        alternatives = report["alternatives"]
+        warnings = report["warnings"]
+    else:
+        answer = (
+            "Sou o RPG Combat Brain, um assistente de regras e estratégia local.\n"
+            "Você pode pedir 'analise uma abertura', 'melhor combo agora', 'devo bloquear?', "
+            "'qual a ficha do Akira?' ou 'mostre os inimigos'.\n"
+            "Para atualizar uma ficha por chat, use '/set akira ea 400' ou "
+            "'atualiza o HP do Akira Uchiha para 550'.\n"
+            "Ações planejadas NÃO alteram recursos até serem confirmadas."
+        )
+        needs_confirmation = True
+    chat_store.add_message("user", body.message)
+    chat_store.add_message("assistant", answer, {"alternatives": alternatives, "warnings": warnings})
+    return ChatResponse(intent=parsed.intent, answer=answer,
+                        alternatives=alternatives, warnings=warnings,
+                        requires_confirmation=needs_confirmation)
