@@ -20,8 +20,8 @@ def _norm(value: str) -> str:
 def _aliases(record: dict, source: str) -> list[str]:
     name = _norm(record["name"])
     aliases = [name]
-    if source == "lab":
-        # Enemy Forge cria "Guardião de Pedra · D3/S42".
+    if source in ("lab", "combat"):
+        # Enemy Forge cria "Guardião de Pedra · D3/S42"; cópias adotadas também
         # A parte antes do sufixo também é pesquisável, mas pode ser ambígua.
         base = re.sub(r"\s*[·•]\s*d\d+/s\d+$", "", name)
         if base != name:
@@ -82,12 +82,13 @@ class SheetTargetResolverSkill:
                     prefix = normalized[max(0, found.start() - 65):found.start()]
                     # "no mesmo modelo do Akira" não quer dizer exportar Akira.
                     style_ref = bool(re.search(
-                        r"\b(?:modelo|estilo|formato|padrao|igual)\b"
+                        r"\b(?:modelo|estilo|formato|padrao|igual|como)\b"
                         r"[^.!?\n]{0,35}\b(?:do|da|de)\s+$", prefix
                     ))
                     # "ficha do Guardião", "ficha estilizada do Guardião", etc.
                     subject_ref = bool(re.search(
-                        r"\bficha\b[^.!?\n]{0,45}\b(?:do|da|de)\s+$", prefix
+                        r"\bficha\b(?:\s+(?!do\b|da\b|de\b)[\w-]+){0,3}"
+                        r"\s+(?:do|da|de)\s+$", prefix
                     )) and not style_ref
                     match = {
                         "source": source, "record": record,
