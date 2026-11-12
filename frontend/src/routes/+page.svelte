@@ -8,9 +8,10 @@
     Swords, Target, Trash2, UserRound, UsersRound,
     X, Zap
   } from 'lucide-svelte';
-  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team, type CombatReport, type CombatTechnique, type EnemyDiscoveryEdit } from '$lib/api';
+  import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team, type CombatReport, type CombatTechnique, type CombatItem, type EnemyDiscoveryEdit } from '$lib/api';
   import LearningLab from '$lib/LearningLab.svelte';
   import CombatJournal from '$lib/CombatJournal.svelte';
+  import SheetExportPanel from '$lib/SheetExportPanel.svelte';
 
   type View = 'overview' | 'characters' | 'abilities' | 'history' | 'lab';
   let view: View = 'overview';
@@ -20,6 +21,8 @@
   let events: BattleEvent[] = [];
   let reports: CombatReport[] = [];
   let newTechniqueName = '';
+  let newTechniqueCategory: 'technique' | 'extra' = 'technique';
+  let newItemName = '';
   let selectedId = 'akira';
   let selected: Character | null = null;
   let loading = true;
@@ -168,10 +171,29 @@
     if (!selected || !newTechniqueName.trim()) return;
     const technique: CombatTechnique = {
       name: newTechniqueName.trim(), damage: null, ea_cost: null, cooldown: null,
-      effect: null, accuracy_bonus: null, status: 'user_provided'
+      effect: null, accuracy_bonus: null, status: 'user_provided',
+      category: newTechniqueCategory
     };
     await update('techniques', [...(selected.techniques ?? []), technique]);
     newTechniqueName = '';
+  }
+  async function updateItem(index: number, field: keyof CombatItem, value: string | null) {
+    if (!selected) return;
+    const items = (selected.items ?? []).map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    );
+    await update('items', items);
+  }
+  async function addItem() {
+    if (!selected || !newItemName.trim()) return;
+    await update('items', [...(selected.items ?? []), {
+      name: newItemName.trim(), damage: null, effect: null
+    }]);
+    newItemName = '';
+  }
+  async function removeItem(index: number) {
+    if (!selected) return;
+    await update('items', selected.items.filter((_, i) => i !== index));
   }
   async function removeTechnique(index: number) {
     if (!selected) return;
@@ -469,7 +491,7 @@
                 <label>Usos de Output<input type="number" min="0" max="30" value={selected.output_used} on:change={(e) => update('output_used', Number(e.currentTarget.value))}/></label>
                 <label>Usos de Energia Reversa<input type="number" min="0" max="20" value={selected.reverse_used} on:change={(e) => update('reverse_used', Number(e.currentTarget.value))}/></label>
               </div>
-              <div class="field-group-title">Técnicas cadastradas na ficha</div>
+              <div class="field-group-title">Técnicas e habilidades extras</div>
               <p class="sheet-hint">As técnicas de inimigos podem ser editadas. Fórmulas e custos pendentes permanecem sem valor até serem confirmados; o motor atual ainda não executa todas essas técnicas automaticamente.</p>
               {#each selected.techniques ?? [] as technique, i}
                 <div class="technique-editor">
@@ -481,12 +503,27 @@
                     <label>Cooldown (turnos)<input type="number" min="0" value={technique.cooldown ?? ''} on:change={(e) => updateTechnique(i,'cooldown',parseOptionalNumber(e.currentTarget.value))}/></label>
                     <label>Bônus de acerto<input value={technique.accuracy_bonus ?? ''} on:change={(e) => updateTechnique(i,'accuracy_bonus',e.currentTarget.value || null)}/></label>
                     <label>Origem<select value={technique.status} on:change={(e) => updateTechnique(i,'status',e.currentTarget.value)}><option value="user_provided">Informada</option><option value="confirmed">Confirmada</option><option value="synthetic">Sintética</option><option value="placeholder">Pendente</option></select></label>
+                     <label>Seção na ficha textual<select value={technique.category ?? 'technique'} on:change={(e) => updateTechnique(i,'category',e.currentTarget.value)}><option value="technique">Técnicas</option><option value="extra">Habilidades Extras</option></select></label>
                   </div>
                   <label class="technique-effect">Efeito<input value={technique.effect ?? ''} on:change={(e) => updateTechnique(i,'effect',e.currentTarget.value || null)}/></label>
                 </div>
               {/each}
-              <div class="new-technique"><input aria-label="Nome da nova técnica" placeholder="Nome da nova técnica" bind:value={newTechniqueName}/><button class="btn btn-outline" disabled={!newTechniqueName.trim()} on:click={addTechnique}><Plus size={15}/> Adicionar técnica</button></div>
-              <div class="field-grid field-full">
+              <div class="new-technique"><input aria-label="Nome da nova técnica" placeholder="Nome da técnica ou habilidade" bind:value={newTechniqueName}/><select aria-label="Categoria da nova habilidade" bind:value={newTechniqueCategory}><option value="technique">Técnica</option><option value="extra">Habilidade extra</option></select><button class="btn btn-outline" disabled={!newTechniqueName.trim()} on:click={addTechnique}><Plus size={15}/> Adicionar</button></div>
+               <div class="field-group-title">Itens cadastrados</div>
+               <p class="sheet-hint">Cadastre equipamentos reais para incluí-los na exportação. A Kenrykat do Akira já consta no catálogo, sem precisar duplicá-la.</p>
+               {#each selected.items ?? [] as item, i}
+                 <div class="technique-editor">
+                   <div class="technique-heading"><span>ITEM {i + 1}</span><button on:click={() => removeItem(i)} title="Remover item" aria-label="Remover item"><Trash2 size={15}/></button></div>
+                   <div class="field-grid">
+                     <label>Nome<input value={item.name} on:change={(e) => updateItem(i, 'name', e.currentTarget.value)}/></label>
+                     <label>Dano (se houver)<input value={item.damage ?? ''} on:change={(e) => updateItem(i, 'damage', e.currentTarget.value || null)}/></label>
+                   </div>
+                   <label class="technique-effect">Efeito / observações<input value={item.effect ?? ''} on:change={(e) => updateItem(i, 'effect', e.currentTarget.value || null)}/></label>
+                 </div>
+               {/each}
+               <div class="new-technique"><input aria-label="Nome do novo item" placeholder="Nome do novo item" bind:value={newItemName}/><button class="btn btn-outline" disabled={!newItemName.trim()} on:click={addItem}><Plus size={15}/> Adicionar item</button></div>
+              <SheetExportPanel character={selected}/>
+               <div class="field-grid field-full">
                 <label>Efeitos ativos <small>(separados por vírgula)</small><input value={selected.effects.join(', ')} on:change={(e) => update('effects', e.currentTarget.value.split(',').map((x) => x.trim()).filter(Boolean))} placeholder="Ex.: queimadura, reforço ativo"/></label>
                 <label>Observações de combate<textarea rows="3" value={selected.notes} on:change={(e) => update('notes', e.currentTarget.value)} placeholder="Informações confirmadas do mestre, limitações, fraquezas..."></textarea></label>
               </div>
