@@ -161,3 +161,50 @@ def test_future_plans_cannot_reveal_enemy_abilities(client):
     assert response["report_id"] is None
     assert next(c for c in client.get("/api/characters").json()
                 if c["id"] == target["id"])["techniques"] == []
+
+
+def test_unknown_cooldown_stays_unknown(client):
+    enemy_data = client.post("/api/characters", json={"name": "Maldição Gelo", "team": "enemy"}).json()
+    report_id = client.post("/api/chat", json={
+        "message": "A Maldição Gelo usou Prisão Glacial."
+    }).json()["report_id"]
+    assert report_id is not None
+    assert client.post(f"/api/combat/reports/{report_id}/review",
+                       json={"decision": "confirmed"}).status_code == 200
+    saved = next(c for c in client.get("/api/characters").json() if c["id"] == enemy_data["id"])
+    assert saved["techniques"][0]["cooldown"] is None
+    assert saved["techniques"][0]["ea_cost"] is None
+    assert saved["techniques"][0]["observed"] is True
+
+
+def test_synthetic_stats_not_rebranded_as_confirmed(client):
+    enemy_data = client.post("/api/characters", json={"name": "Maldição Gelo", "team": "enemy"}).json()
+    client.patch(f"/api/characters/{enemy_data['id']}", json={"techniques": [
+        {"name": "Prisão Glacial", "cooldown": 5, "status": "synthetic", "damage": "4d6"}
+    ]})
+    report_id = client.post("/api/chat", json={
+        "message": "A Maldição Gelo usou Prisão Glacial."
+    }).json()["report_id"]
+    assert client.post(f"/api/combat/reports/{report_id}/review",
+                       json={"decision": "confirmed"}).status_code == 200
+    saved = next(c for c in client.get("/api/characters").json() if c["id"] == enemy_data["id"])
+    assert saved["techniques"][0]["status"] == "synthetic"
+    assert saved["techniques"][0]["observed"] is True
+    assert saved["techniques"][0]["cooldown"] == 5
+
+
+def test_ignoring_ambiguous_discovery_still_confirms_narrative(client):
+    client.post("/api/characters", json={"name": "Maldição A", "team": "enemy"})
+    client.post("/api/characters", json={"name": "Maldição B", "team": "enemy"})
+    report_id = client.post("/api/chat", json={
+        "message": "O inimigo usou Ruptura do Véu e tirou 18 no ataque."
+    }).json()["report_id"]
+    edited = client.patch(f"/api/combat/reports/{report_id}/discovery", json={
+        "index": 0, "enemy_id": None, "name": "Ruptura do Véu",
+        "cooldown": None, "ea_cost": None, "damage": None,
+        "effect": None, "ignored": True
+    })
+    assert edited.status_code == 200
+    assert client.post(f"/api/combat/reports/{report_id}/review",
+                       json={"decision": "confirmed"}).status_code == 200
+    assert not any(c["techniques"] for c in client.get("/api/characters").json())
