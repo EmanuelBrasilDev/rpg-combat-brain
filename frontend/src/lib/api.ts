@@ -72,6 +72,7 @@ export type CombatTechnique = {
   effect: string | null;
   accuracy_bonus: string | null;
   status: 'user_provided' | 'synthetic' | 'placeholder' | 'confirmed';
+  observed?: boolean;
 };
 export type RollObservation = {
   actor: 'player' | 'enemy' | 'ally' | 'unknown';
