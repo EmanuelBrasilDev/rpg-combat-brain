@@ -17,6 +17,7 @@ from .skills.enemy_forge import EnemyForgeSkill
 from .skills.learning_lab import LearningLabSkill, SCENARIOS
 from .skills.character_sheet_analyzer import CharacterSheetAnalyzer
 from .skills.character_sheet_formatter import CharacterSheetFormatterSkill
+from .skills.sheet_target_resolver import SheetTargetResolverSkill
 from .skills.combat_interpreter import normalize
 from .skills.combat_interpreter import interpret
 from .skills.tactical_decision import TacticalDecision
@@ -42,6 +43,7 @@ app.add_middleware(
 
 analyzer = CharacterSheetAnalyzer()
 formatter = CharacterSheetFormatterSkill()
+sheet_resolver = SheetTargetResolverSkill()
 decision = TacticalDecision()
 response_skill = TacticalResponse()
 rulebook_skill = RulebookSkill()
@@ -148,7 +150,7 @@ def chat(body: ChatRequest):
     report_id = None
     draft = tracker.draft(body.message, character["id"], sheets)
     # Um relato é uma proposta, não um evento aplicado à ficha.
-    if draft and parsed.intent not in ("update", "undo", "new_turn", "rules"):
+    if draft and parsed.intent not in ("update", "undo", "new_turn", "rules", "sheet_export", "sheet"):
         report_id = combat_store.add_draft(draft)["id"]
         needs_confirmation = True
     context = context_skill.summarize(
@@ -158,15 +160,15 @@ def chat(body: ChatRequest):
     )
 
     if parsed.intent == "sheet_export":
-        normalized_message = normalize(body.message)
-        mentioned = [
-            sheet for sheet in sheets
-            if normalize(sheet["name"]) in normalized_message or
-            (normalized_message.startswith("/ficha-texto ") and
-             normalize(sheet["id"]) == normalized_message[len("/ficha-texto "):].strip())
-        ]
-        target = mentioned[0] if len(mentioned) == 1 else character
-        answer = formatter.format(target)
+        resolved = sheet_resolver.resolve(
+            body.message, character["id"], sheets, lab_store.list_enemies()
+        )
+        if resolved.record is None:
+            answer = resolved.message
+        elif resolved.source == "lab":
+            answer = formatter.format_lab(resolved.record)
+        else:
+            answer = formatter.format(resolved.record)
     elif parsed.intent == "update" and parsed.update:
         character_id, field, value = parsed.update
         try:
@@ -211,11 +213,18 @@ def chat(body: ChatRequest):
     elif parsed.intent == "ability":
         answer = akira_skill.describe_ability(body.message) or "Não encontrei a técnica solicitada no catálogo. Confira o nome no Arsenal."
     elif parsed.intent == "sheet":
-        named = next((c for c in sheets if c["name"].casefold() in body.message.casefold()), None)
         if any(word in body.message.casefold() for word in ("todos", "aliados", "inimigos", "equipe")):
             answer = analyzer.compare(sheets)
         else:
-            answer = analyzer.summarize(named or character)
+            resolved = sheet_resolver.resolve(
+                body.message, character["id"], sheets, lab_store.list_enemies()
+            )
+            if resolved.record is None:
+                answer = resolved.message
+            elif resolved.source == "lab":
+                answer = formatter.format_lab(resolved.record)
+            else:
+                answer = analyzer.summarize(resolved.record)
         warnings = ["Campos desconhecidos são mantidos como pendentes, não estimados."]
     elif parsed.intent == "tactics":
         enemies = [c for c in sheets if c["team"] == "enemy"]
@@ -289,6 +298,18 @@ def learning_overview():
 @app.get("/api/lab/enemies")
 def lab_enemies():
     return lab_store.list_enemies()
+
+@app.get("/api/lab/enemies/{enemy_id}/export")
+def export_lab_enemy(enemy_id: str):
+    """Exporta referência de laboratório como Markdown, sem adotá-la."""
+    profile = lab_store.get_enemy(enemy_id)
+    if profile is None:
+        raise HTTPException(404, "Ficha de laboratório não encontrada.")
+    return {
+        "character_id": enemy_id, "character_name": profile["name"],
+        "format": "markdown", "content": formatter.format_lab(profile)
+    }
+
 
 @app.post("/api/lab/enemies/generate", status_code=201)
 def generate_lab_enemy(body: GenerateEnemyRequest):
