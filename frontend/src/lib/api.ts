@@ -21,8 +21,11 @@ export interface EnemyProfile {
   seed: number;
   hp: number | null;
   ea: number | null;
+  strength: number | null;
+  speed: number | null;
+  resistance: number | null;
+  intellect: number | null;
   spirit: number | null;
-  dexterity: number | null;
   reinforcement_level: number | null;
   output_level: number | null;
   reverse_level: number | null;
@@ -135,8 +138,11 @@ export interface Character {
   max_hp: number | null;
   ea: number | null;
   max_ea: number | null;
+  strength: number | null;
+  speed: number | null;
+  resistance: number | null;
+  intellect: number | null;
   spirit: number | null;
-  dexterity: number | null;
   form: Form;
   main_actions: number;
   bonus_actions: number;
