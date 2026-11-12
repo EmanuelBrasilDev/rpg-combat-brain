@@ -2,13 +2,14 @@
 import re
 from .dice_roll_interpreter import DiceRollInterpreter, normalize
 from .enemy_ability_discovery import EnemyAbilityDiscoverySkill
+from .mega_brain import MegaBrainSkill
 from ..catalog import load_catalog
 
 PAST_EVENTS = re.compile(
     r"\b(?:usou|utilizou|atacou|tentei|esquivei|bloqueei|recebi|tomei|tirei|tirou|"
     r"rolou|rolei|gastei|gastou|acertou|falhou|atualizei|atualizou|"
     r"ficou|sofri|perdi|consumi|consumiu|aplicou|deu\s+\d+|"
-    r"executou|queimou|defendeu|desviou)\b"
+    r"executou|queimou|defendeu|desviou|ativei|ativou)\b"
 )
 FUTURE_MARKERS = re.compile(r"\b(?:vou\s+usar|pretendo\s+usar|poderia\s+usar|usaria|tentaria|se\s+eu\s+usar)\b")
 FINAL_RESOURCE = re.compile(
@@ -61,7 +62,8 @@ class CombatEventTracker:
         ea_spent = re.search(r"\b(?:gastei|consumi)\s+(\d{1,5})\s*ea\b", text)
         # Somente estados ABSOLUTOS poderão ser escritos ao confirmar o relato.
         # Quantidade de dano/EA consumida nunca é subtraída automaticamente.
-        updates: dict[str, dict[str, int]] = {}
+        updates: dict[str, dict] = {}
+        mega_warnings = []
         for match in NAMED_RESOURCE.finditer(message):
             field, name, value = match.groups()
             possible = self._character(name.strip(), characters)
@@ -78,12 +80,42 @@ class CombatEventTracker:
         ))
         if explicit_reaction:
             updates.setdefault(actor["id"], {})["reaction_available"] = False
+        if actor["id"] == "akira":
+            activated = bool(re.search(r"\b(?:ativei|akira\s+ativou)\s+(?:a\s+|o\s+)?mega\s+brain\b", text))
+            suffered_cc = bool(re.search(
+                r"\b(?:sofri|fiquei|fui|akira\s+sofreu|akira\s+ficou)\b"
+                r".{0,60}\b(?:stun|paralisi[a-z]*|paralisad[a-z]*|fear|"
+                r"atordoad[a-z]*|amedrontad[a-z]*|cc)\b", text
+            ))
+            skill = MegaBrainSkill()
+            if activated and suffered_cc:
+                mega_warnings.append(
+                    "Ativação de Mega Brain e CC no mesmo relato: revise separadamente a ordem dos fatos."
+                )
+            elif activated:
+                try:
+                    updates.setdefault("akira", {}).update(skill.activate_changes(actor))
+                    mega_warnings.append(
+                        "Ativação relatada: após confirmar, serão consumidas TODAS as ações bônus "
+                        "do turno, sem gastar EA. Duração 1 turno e cooldown de 2 turnos."
+                    )
+                except ValueError as error:
+                    mega_warnings.append(f"Mega Brain não foi aplicada: {error}")
+            elif suffered_cc and actor.get("mega_brain_active"):
+                updates.setdefault("akira", {}).update(skill.interrupt_changes(actor))
+                mega_warnings.append(
+                    "CC sofrido por Akira: confirmar encerrará Mega Brain, preservando o cooldown."
+                )
         snapshots = {
             c["id"]: {"hp": c.get("hp"), "ea": c.get("ea"),
-                      "reaction_available": c.get("reaction_available")}
+                      "reaction_available": c.get("reaction_available"),
+                      "bonus_actions": c.get("bonus_actions"),
+                      "mega_brain_active": c.get("mega_brain_active"),
+                      "mega_brain_turns_remaining": c.get("mega_brain_turns_remaining"),
+                      "mega_brain_cooldown_remaining": c.get("mega_brain_cooldown_remaining")}
             for c in characters if c["id"] in updates
         }
-        warnings = []
+        warnings = list(mega_warnings)
         if damage_match:
             warnings.append("O dano informado é registrado como observação; sem HP final, não será descontado automaticamente.")
         if ea_spent:
@@ -91,7 +123,7 @@ class CombatEventTracker:
         if discoveries:
             warnings.append("Técnicas reveladas ficam pendentes até você confirmar nome, inimigo e cooldown. Dados não informados não serão inventados.")
         if not updates and not discoveries:
-            warnings.append("Nenhuma mudança absoluta de ficha identificada. Confirmar o relato não alterará HP/EA.")
+            warnings.append("Nenhuma atualização automática de ficha identificada; o relato será apenas lembrado.")
         if rolls and any(roll["total"] is None for roll in rolls):
             warnings.append("Expressões de dados sem resultado foram mantidas como fórmulas, não como rolagens executadas.")
         return {
