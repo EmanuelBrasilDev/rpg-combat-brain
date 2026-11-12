@@ -1,6 +1,7 @@
 """Contratos do laboratório — não são fichas oficiais nem personagens de batalha."""
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from .skills.attributes import migrate_attribute_keys
 
 Origin = Literal["user_example", "synthetic"]
 BuildTemplate = Literal["curse_grade_3", "mahito_reference", "procedural"]
@@ -29,8 +30,11 @@ class EnemyProfile(BaseModel):
     seed: int = Field(ge=0, le=999999)
     hp: int | None = Field(default=None, ge=0)
     ea: int | None = Field(default=None, ge=0)
-    spirit: int | None = Field(default=None, ge=0)
-    dexterity: int | None = Field(default=None, ge=0)
+    strength: int | None = Field(default=None, ge=0, le=50)
+    speed: int | None = Field(default=None, ge=0, le=50)
+    resistance: int | None = Field(default=None, ge=0, le=50)
+    intellect: int | None = Field(default=None, ge=0, le=50)
+    spirit: int | None = Field(default=None, ge=0, le=50)
     reinforcement_level: int | None = Field(default=None, ge=0, le=10)
     output_level: int | None = Field(default=None, ge=0, le=10)
     reverse_level: int | None = Field(default=None, ge=0, le=10)
@@ -39,6 +43,11 @@ class EnemyProfile(BaseModel):
     techniques: list[EnemyTechnique] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     approved_for_real_combat: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_old_attributes(cls, payload):
+        return migrate_attribute_keys(payload) if isinstance(payload, dict) else payload
 
 class GenerateEnemyRequest(BaseModel):
     template: BuildTemplate = "procedural"
