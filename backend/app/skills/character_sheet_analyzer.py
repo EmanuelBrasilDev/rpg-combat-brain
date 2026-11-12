@@ -1,5 +1,6 @@
 """Consulta as fichas e sinaliza dados ausentes, sem inventar atributos."""
 from ..catalog import load_catalog
+from .curse_grade import CurseGradeSkill
 
 class CharacterSheetAnalyzer:
     def summarize(self, character: dict) -> str:
@@ -14,6 +15,10 @@ class CharacterSheetAnalyzer:
             f"Nível: {character['level'] or 'desconhecido'} | ESP: {character['spirit'] if character['spirit'] is not None else '?'} | DES: {character['dexterity'] if character['dexterity'] is not None else '?'}",
             f"Forma: {character['form']} | Principais: {character['main_actions']} | Bônus: {character['bonus_actions']} | Reação: {'livre' if character['reaction_available'] else 'gasta'}",
         ]
+        if character["team"] == "enemy":
+            label = CurseGradeSkill().enemy_grade(character)
+            if label:
+                fields.append(f"Classificação: {label} (Grau Especial > 1 > 2 > 3 > 4; menor número = mais forte).")
         if character['id'] == 'akira':
             fields.append(f"Fangs: {6-character['fangs_used']}/6 | Maw: {6-character['maw_used']}/6 | Críticos para Kokusen: {character['critical_count']}/3")
         levels = [(name, character.get(field)) for name, field in (
