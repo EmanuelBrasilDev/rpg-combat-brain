@@ -16,6 +16,8 @@ from .lab_models import EnemyProfile, GenerateEnemyRequest, EvaluateRequest, Bat
 from .skills.enemy_forge import EnemyForgeSkill
 from .skills.learning_lab import LearningLabSkill, SCENARIOS
 from .skills.character_sheet_analyzer import CharacterSheetAnalyzer
+from .skills.character_sheet_formatter import CharacterSheetFormatterSkill
+from .skills.combat_interpreter import normalize
 from .skills.combat_interpreter import interpret
 from .skills.tactical_decision import TacticalDecision
 from .skills.tactical_response import TacticalResponse
@@ -39,6 +41,7 @@ app.add_middleware(
 )
 
 analyzer = CharacterSheetAnalyzer()
+formatter = CharacterSheetFormatterSkill()
 decision = TacticalDecision()
 response_skill = TacticalResponse()
 rulebook_skill = RulebookSkill()
@@ -61,6 +64,17 @@ def catalog():
 @app.get("/api/characters")
 def characters():
     return store.list_characters()
+
+@app.get("/api/characters/{id}/export")
+def export_character(id: str):
+    """Renderização somente leitura da ficha persistida mais recente."""
+    sheet = store.get_character(id)
+    if sheet is None:
+        raise HTTPException(404, "Ficha não encontrada.")
+    return {
+        "character_id": id, "character_name": sheet["name"],
+        "format": "markdown", "content": formatter.format(sheet)
+    }
 
 @app.post("/api/characters", status_code=201)
 def create_character(body: CreateCharacter):
@@ -121,7 +135,17 @@ def chat(body: ChatRequest):
         combat_store.list_reports("pending", 30)
     )
 
-    if parsed.intent == "update" and parsed.update:
+    if parsed.intent == "sheet_export":
+        normalized_message = normalize(body.message)
+        mentioned = [
+            sheet for sheet in sheets
+            if normalize(sheet["name"]) in normalized_message or
+            (normalized_message.startswith("/ficha-texto ") and
+             normalize(sheet["id"]) == normalized_message[len("/ficha-texto "):].strip())
+        ]
+        target = mentioned[0] if len(mentioned) == 1 else character
+        answer = formatter.format(target)
+    elif parsed.intent == "update" and parsed.update:
         character_id, field, value = parsed.update
         try:
             saved = store.update_character(character_id, {field: value}, kind="chat_update")
