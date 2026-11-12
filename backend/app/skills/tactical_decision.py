@@ -4,6 +4,7 @@ from .damage_calculator import DamageCalculator
 from .energy_optimizer import EnergyOptimizer
 from .dice_probability import expected_dice
 from .combat_specialists import EnemyAnalysisSkill
+from .attribute_comparison import AttributeComparisonSkill
 
 class TacticalDecision:
     def __init__(self):
@@ -11,6 +12,7 @@ class TacticalDecision:
         self.damage = DamageCalculator()
         self.energy = EnergyOptimizer()
         self.enemy_analysis = EnemyAnalysisSkill()
+        self.attribute_comparison = AttributeComparisonSkill()
 
     def analyze(self, character: dict, enemies: list[dict], message: str) -> dict:
         normalized = message.casefold()
@@ -85,6 +87,7 @@ class TacticalDecision:
             warnings.append("Nenhum inimigo cadastrado. A análise considera apenas o estado do personagem.")
         else:
             warnings.extend(self.enemy_analysis.grade_cautions(enemies))
+            warnings.extend(self.attribute_comparison.compare(character, enemies))
         if not best:
             return {
                 "answer": "Não encontrei uma sequência validada com os recursos atuais. Confira a ficha e as ações restantes.",
