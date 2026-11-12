@@ -10,6 +10,14 @@ O estado ativo, turnos restantes e cooldown restante são separados do cooldown 
 
 Sem indicação de que um número é um **resultado natural do d20**, o motor não presume crítico. Mesmo com resultado natural 15+, não modifica automaticamente o contador de Kokusen, pois os critérios de confirmação ainda dependem da mesa.
 
+## Fichas de outras personagens e adversários do Enemy Forge
+
+A **SheetTargetResolverSkill** procura a ficha solicitada tanto no combate quanto nos adversários **salvos no laboratório**. Em pedidos como *"Transforme a ficha do Guardião de Pedra em texto no modelo do Akira"*, a ficha-alvo é **Guardião de Pedra**; "modelo do Akira" informa apenas o padrão de formatação.
+
+O sistema não recorre ao Akira se o nome solicitado estiver ausente ou for ambíguo. Em múltiplas gerações do mesmo nome-base (ex.: Guardião de Pedra · D2/S11 e · D4/S12), solicita o nome completo ou \`/ficha-texto <id>\`. Sem nome explícito, o comando \`/ficha-texto\` ainda usa a ficha de combate selecionada.
+
+A exportação \`GET /api/lab/enemies/{id}/export\` e o botão **Copiar texto** do Enemy Forge formatam perfis sem criar fichas de combate, alterar dados ou converter valores sintéticos em fatos.
+
 ## Exportação estilizada da ficha
 
 A nova **CharacterSheetFormatterSkill** gera um texto Markdown da ficha persistida. O usuário pode copiar o resultado na aba **Fichas de combate** ou pedir pelo chat "ficha em texto", "ficha estilizada" ou \`/ficha-texto\`. Os campos são dinâmicos: HP, EA, atributos, usos de técnica, efeitos e habilidades personalizadas refletem os valores salvos.

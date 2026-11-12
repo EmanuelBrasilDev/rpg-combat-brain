@@ -22,6 +22,19 @@ A contagem de críticos **não é incrementada automaticamente**: o motor só si
 
 O cadastramento é idempotente para fichas antigas: se o Akira já tiver uma técnica "Mega Brain", o sistema não cria outra nem sobrescreve suas observações.
 
+## Seleção correta da ficha: combatentes e Enemy Forge
+
+A **SheetTargetResolverSkill** identifica qual ficha o jogador pediu no chat, inclusive perfis do Enemy Forge que **ainda não foram adotados** no combate. Pedir *"Transforme a ficha do Guardião de Pedra em texto no mesmo modelo do Akira"* deve gerar o texto do **Guardião de Pedra**, usando apenas o **estilo visual** do Akira. Dizer "no estilo do Akira" não seleciona Akira.
+
+- Para selecionar pelo nome: \`Transforme a ficha do Guardião de Pedra em texto\`.
+- Para selecionar exatamente uma geração: \`/ficha-texto <id-da-ficha>\` ou informe seu nome completo, incluindo \`· D3/S42\`.
+- Para exportar a ficha de combate atualmente selecionada: \`/ficha-texto\`.
+- A ficha gerada no Enemy Forge também tem painel **Ficha em texto estilizado → Copiar texto**, sem necessidade de importá-la.
+
+Se várias gerações do mesmo adversário tiverem o mesmo nome-base, o agente **pede para escolher uma**, mostrando seus nomes e IDs. Se a ficha solicitada não existir, **não retorna Akira como alternativa**. Quando houver uma cópia de mesmo nome já adicionada ao combate, a versão editável do combate é a preferida.
+
+A exportação de laboratório é **somente leitura**: \`GET /api/lab/enemies/{enemy_id}/export\`. As técnicas e os números sintéticos permanecem claramente identificados como tais e não entram no combate sem adoção explícita.
+
 ## Exportação de ficha em texto estilizado
 
 A **\`CharacterSheetFormatterSkill\`** lê o estado atual de qualquer ficha e produz Markdown pronto para colar em chat, Discord ou anotações do RPG. No painel **Fichas de combate**, use **Ficha em texto estilizado → Copiar texto**. A prévia atualiza quando você edita os dados da ficha. Também é possível escrever **"transforme a ficha do Akira em texto"** ou \`/ficha-texto\` no chat.
