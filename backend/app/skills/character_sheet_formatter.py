@@ -101,6 +101,20 @@ class CharacterSheetFormatterSkill:
         if is_akira:
             self._akira_forms(lines, character, abilities, canonical_map)
             self._akira_mangekyou(lines, character, abilities, canonical_map)
+        else:
+            known_levels = [
+                (name, character[field]) for name, field in (
+                    ("Reforço", "reinforcement_level"),
+                    ("Output", "output_level"),
+                    ("Energia Reversa", "reverse_level"),
+                    ("Domínio", "domain_level"),
+                ) if character.get(field) is not None
+            ]
+            if known_levels:
+                self._section(lines, "Proficiências")
+                lines.extend(
+                    f"* {name} (nível {level})" for name, level in known_levels
+                )
 
         self._section(lines, "Habilidades Extras")
         extra = [t for t in character["techniques"] if t["category"] == "extra"]
