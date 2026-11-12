@@ -1,0 +1,1 @@
+"""RPG Combat Brain — motor local-first, sem LLM ou API de IA."""
