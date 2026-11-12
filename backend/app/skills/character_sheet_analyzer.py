@@ -13,8 +13,9 @@ class CharacterSheetAnalyzer:
             (f"/{character['max_ea']}" if character["max_ea"] is not None else " (máximo não informado)"),
             f"Nível: {character['level'] or 'desconhecido'} | ESP: {character['spirit'] if character['spirit'] is not None else '?'} | DES: {character['dexterity'] if character['dexterity'] is not None else '?'}",
             f"Forma: {character['form']} | Principais: {character['main_actions']} | Bônus: {character['bonus_actions']} | Reação: {'livre' if character['reaction_available'] else 'gasta'}",
-            f"Fangs: {6-character['fangs_used']}/6 | Maw: {6-character['maw_used']}/6 | Críticos para Kokusen: {character['critical_count']}/3",
         ]
+        if character['id'] == 'akira':
+            fields.append(f"Fangs: {6-character['fangs_used']}/6 | Maw: {6-character['maw_used']}/6 | Críticos para Kokusen: {character['critical_count']}/3")
         if character["effects"]:
             fields.append("Efeitos: " + ", ".join(character["effects"]))
         return "\n".join(fields)
