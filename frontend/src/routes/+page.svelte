@@ -455,11 +455,12 @@
 </div>
 
 {#if showCreate}
-  <div class="modal-backdrop" role="presentation" on:click={() => showCreate = false}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Criar nova ficha" on:click={(e) => e.stopPropagation()}>
+  <div class="modal-backdrop">
+    <button class="modal-dismiss" type="button" aria-label="Fechar janela" on:click={() => showCreate = false}></button>
+    <div class="modal" role="dialog" tabindex="-1" aria-modal="true" aria-label="Criar nova ficha">
       <div class="modal-title"><div><span class="eyebrow">NOVO COMBATENTE</span><h2>Adicionar ficha</h2></div><button class="icon-btn" aria-label="Fechar" on:click={() => showCreate = false}><X size={19}/></button></div>
       <p>Cadastre aliados e inimigos mesmo com informações incompletas. A análise respeitará os campos desconhecidos.</p>
-      <label>Nome do personagem<input autofocus maxlength="80" placeholder="Ex.: Maldição desconhecida" bind:value={newName}/></label>
+      <label>Nome do personagem<input maxlength="80" placeholder="Ex.: Maldição desconhecida" bind:value={newName}/></label>
       <label>Tipo de combatente<select bind:value={newTeam}><option value="ally">Aliado</option><option value="enemy">Inimigo</option></select></label>
       <div class="modal-actions"><button class="btn btn-outline" on:click={() => showCreate = false}>Cancelar</button><button class="btn btn-primary" disabled={!newName.trim() || pending} on:click={createCharacter}><Plus size={16}/> Criar ficha</button></div>
     </div>
