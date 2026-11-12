@@ -210,6 +210,11 @@ class CharacterSheetFormatterSkill:
             ),
         )
         rendered = self.format(character.model_dump()).rstrip()
+        rendered += (
+            "\n-\n* FICHA DE LABORATÓRIO: "
+            + ("dados sintéticos, não oficiais." if profile.origin == "synthetic"
+               else "referência fornecida; não adicionada ao combate.")
+        )
         if profile.assumptions:
             rendered += "\n-\n# Premissas da geração\n"
             rendered += "\n".join("* " + _safe(x) for x in profile.assumptions)
