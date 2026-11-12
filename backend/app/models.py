@@ -12,6 +12,7 @@ class CombatTechnique(BaseModel):
     effect: str | None = Field(default=None, max_length=400)
     accuracy_bonus: str | None = Field(default=None, max_length=100)
     status: Literal["user_provided", "synthetic", "placeholder", "confirmed"] = "user_provided"
+    observed: bool = False  # uso confirmado em combate, sem validar campos sintéticos prévios
 
 
 class Character(BaseModel):
