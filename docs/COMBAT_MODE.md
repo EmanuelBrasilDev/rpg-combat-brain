@@ -2,6 +2,20 @@
 
 O jogador controla a narrativa com o mestre. O RPG Combat Brain **não executa uma luta sozinho**, não rola dados por conta própria e não aplica dano sem confirmação.
 
+## Descoberta de habilidades inimigas
+
+Ao contrário da ficha inicial, as técnicas dos inimigos surgem gradualmente. A **EnemyAbilityDiscoverySkill** reconhece habilidades relatadas e cria um rascunho na mesma memória de combate. Exemplo:
+
+> "A Maldição Grau 3 usou Ataque de Garras, dano 5d8 + 3d2, cooldown 2 turnos."
+
+No painel de revisão, escolha o inimigo responsável, revise o **nome**, indique **cooldown** e os detalhes que o mestre realmente revelou. Depois, salve a proposta e confirme o relato. A habilidade aparece na ficha desse inimigo.
+
+Se o nome não estiver claro, use o comando estruturado \`@tecnica Inimigo | Nome da Técnica | cd=2 | dano=5d8+3d2 | ea=20 | efeito: observação\`, ou edite manualmente o rascunho. Com vários inimigos sem identidade clara, nenhuma ficha é selecionada automaticamente. Também não há registros por palavras genéricas como "usou uma técnica".
+
+Técnicas observadas não são duplicadas pelo nome normalizado, informações faltantes não são inventadas, e divergências com valores já cadastrados exigem revisão humana. Um cooldown informado descreve a **recarga da habilidade**, mas não representa uma contagem regressiva automática durante turnos.
+
+**Limitação:** a interpretação é orientada por padrões, funciona melhor com frases explícitas, e pode não identificar descrições complexas. Sempre revise antes de confirmar.
+
 ## Fluxo
 
 1. Cadastre as fichas na aba **Fichas de combate**. Cada aliado ou inimigo pode ter HP, EA, ESP, DES, níveis de Reforço/Output/Reversa/Domínio e técnicas próprias.
