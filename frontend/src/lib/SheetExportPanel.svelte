@@ -1,9 +1,10 @@
 <script lang="ts">
   import { ClipboardCopy, Check, FileText, RotateCcw, AlertCircle } from 'lucide-svelte';
   import { onMount } from 'svelte';
-  import { api, type Character } from '$lib/api';
+  import { api, type Character, type EnemyProfile } from '$lib/api';
 
-  export let character: Character;
+  export let character: Character | EnemyProfile;
+  export let source: 'combat' | 'lab' = 'combat';
 
   let text = '';
   let loading = false;
@@ -15,7 +16,7 @@
 
   onMount(() => { mounted = true; });
 
-  $: fingerprint = JSON.stringify(character);
+  $: fingerprint = JSON.stringify({ source, character });
   $: if (mounted && fingerprint !== lastFingerprint) {
     lastFingerprint = fingerprint;
     void generate();
@@ -27,7 +28,7 @@
     copied = false;
     error = '';
     try {
-      const result = await api.exportCharacter(character.id);
+      const result = source === 'lab' ? await api.exportLabEnemy(character.id) : await api.exportCharacter(character.id);
       if (token === latestRequest) text = result.content;
     } catch (err) {
       if (token === latestRequest) {
@@ -69,6 +70,7 @@
       </button>
     </div>
   </div>
+  {#if source === 'lab'}<p class="note"><strong>Enemy Forge:</strong> apenas leitura. Exportar não adiciona o adversário ao combate; dados sintéticos continuam sinalizados.</p>{/if}
   <p class="note">Usos e cooldowns são diferentes. <code>?c</code> indica recarga desconhecida e <code>?t</code> indica turnos restantes não controlados; nenhum deles é tratado como zero.</p>
   {#if error}<p role="alert" class="error"><AlertCircle size={15}/>{error}</p>{/if}
   {#if loading && !text}<p class="loading">Preparando ficha...</p>{/if}
