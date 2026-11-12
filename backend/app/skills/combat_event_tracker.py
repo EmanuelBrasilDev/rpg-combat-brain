@@ -15,7 +15,7 @@ FINAL_RESOURCE = re.compile(
     re.IGNORECASE
 )
 SELF_RESOURCE = re.compile(
-    r"\b(?:(?:meu|minha|o)\s+)?(hp|ea)\s+(?:atual(?:izado|izada)?\s+)?"
+    r"\b(?:meu|minha)\s+(hp|ea)\s+(?:atual(?:izado|izada)?\s+)?"
     r"(?:ficou\s+em|para|em)\s+(\d{1,6})\b",
     re.IGNORECASE
 )
@@ -65,11 +65,7 @@ class CombatEventTracker:
             if possible is not None:
                 updates.setdefault(possible["id"], {})[field.lower()] = int(value)
         for match in SELF_RESOURCE.finditer(message):
-            # Não interpretar "HP do inimigo para X" como HP do Akira.
-            pre = normalize(message[max(0, match.start()-10):match.start()])
-            after = normalize(message[match.start():min(len(message), match.end()+70)])
-            if " do " in after[:26] or " da " in after[:26]:
-                continue
+            # Exige possessivo explícito (meu/minha); "o HP" sozinho é ambíguo.
             field, value = match.groups()
             updates.setdefault(actor["id"], {})[field.lower()] = int(value)
         # "atualizei meu HP para 565" é capturado pelo padrão acima.
