@@ -116,6 +116,20 @@ class SheetTargetResolverSkill:
 
         if not candidates:
             if not explicit_command:
+                if re.search(
+                    r"\b(?:essa|esta|aquela|dessa|daquela)\s+ficha\b|"
+                    r"\bficha\s+(?:que\s+)?(?:voce\s+)?(?:criou|gerou|gerada|criada)\b",
+                    normalized,
+                ):
+                    return SheetResolution(
+                        "ambiguous",
+                        message=(
+                            "Você pediu 'essa ficha', mas não há uma ficha-alvo "
+                            "identificada no chat. Informe o nome, como "
+                            "'Guardião de Pedra', ou use /ficha-texto <id>. "
+                            "Não vou substituir por Akira."
+                        )
+                    )
                 # Uma referência explícita a uma ficha DESCONHECIDA não pode
                 # fazer fallback silencioso para o Akira selecionado.
                 named_request = re.search(
