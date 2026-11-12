@@ -61,8 +61,8 @@ class DiceRollInterpreter:
         prefix = normalize(message[max(0, begin - 95):begin])
         after = normalize(message[end:end + 45])
         # A atribuição de autor deve permanecer conservadora quando faltar contexto.
-        if re.search(r"\b(?:eu|meu|minha|akira)\b[^.!?\n]{0,40}$", prefix) or
-           re.search(r"\b(?:tirei|rolei)\b", normalize(message[begin:end])):
+        if (re.search(r"\b(?:eu|meu|minha|akira)\b[^.!?\n]{0,40}$", prefix) or
+                re.search(r"\b(?:tirei|rolei)\b", normalize(message[begin:end]))):
             actor = "player"
         elif re.search(r"\b(?:inimigo|maldicao|mahito|adversario|ele)\b[^.!?\n]{0,55}$", prefix):
             actor = "enemy"
