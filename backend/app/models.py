@@ -1,5 +1,6 @@
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from .skills.attributes import migrate_attribute_keys
 
 Team = Literal["player", "ally", "enemy"]
 
@@ -25,8 +26,11 @@ class Character(BaseModel):
     max_hp: int | None = Field(default=None, ge=0)
     ea: int | None = Field(default=None, ge=0)
     max_ea: int | None = Field(default=None, ge=0)
-    spirit: int | None = Field(default=None, ge=0)
-    dexterity: int | None = Field(default=None, ge=0)
+    strength: int | None = Field(default=None, ge=0, le=50)
+    speed: int | None = Field(default=None, ge=0, le=50)
+    resistance: int | None = Field(default=None, ge=0, le=50)
+    intellect: int | None = Field(default=None, ge=0, le=50)
+    spirit: int | None = Field(default=None, ge=0, le=50)
     form: Literal["none", "scales", "assault"] = "none"
     main_actions: int = Field(default=2, ge=0, le=2)
     bonus_actions: int = Field(default=2, ge=0, le=2)
@@ -49,6 +53,11 @@ class Character(BaseModel):
     extra_metrics: dict[str, int | str | bool | None] = Field(default_factory=dict)
     sheet_origin: Literal["manual", "user_example", "synthetic"] = "manual"
     origin_warning: str = Field(default="", max_length=600)
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_old_attributes(cls, payload):
+        return migrate_attribute_keys(payload) if isinstance(payload, dict) else payload
 
 class CreateCharacter(BaseModel):
     name: str = Field(min_length=1, max_length=80)
