@@ -255,6 +255,7 @@ export const api = {
   catalog: () => request<Catalog>('/api/catalog'),
   characters: () => request<Character[]>('/api/characters'),
   exportCharacter: (id: string) => request<CharacterExport>('/api/characters/' + encodeURIComponent(id) + '/export'),
+  exportLabEnemy: (id: string) => request<CharacterExport>('/api/lab/enemies/' + encodeURIComponent(id) + '/export'),
   megaBrain: (id: string, action: 'activate' | 'interrupt') =>
     request<Character>('/api/characters/' + encodeURIComponent(id) + '/mega-brain/' + action, {
       method: 'POST'
