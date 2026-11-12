@@ -14,7 +14,7 @@ _NAME = re.compile(
     r"\b(?:usou|utilizou|revelou|ativou|executou)\s+"
     r"(?:(?:a|o|uma|um)\s+)?"
     r"(?:(?:t[eé]cnica|habilidade|golpe|feiti[cç]o)\s+(?:chamad[oa]\s+)?)?"
-    r"(?P<name>[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9'’ -]{2,95}?)"
+    r"(?P<name>[\"“]?[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9'’ -]{2,95}?[\"”]?)"
     r"(?=,|;|[.!?\n]|$|\s+(?:"
     r"e\s+(?:tirou|rolou|acertou|causou|gastou|aplicou|deu|revelou)|"
     r"que\s+(?:causa|deu|aplica|atingiu)|"
@@ -88,6 +88,8 @@ class EnemyAbilityDiscoverySkill:
                 "evidence": message[:500],
                 "ignored": False
             }] if name.strip() else []
+        if not any(c['team'] == 'enemy' for c in characters):
+            return []
         discoveries: list[dict] = []
         # Don't interpret "vou usar" or ability proposals as an observed use.
         plain = normalize(message)
@@ -95,8 +97,8 @@ class EnemyAbilityDiscoverySkill:
             return []
         target_id = self._target(message, characters)
         for match in list(_NAME.finditer(message))[:5]:
-            name = re.sub(r"\s+", " ", match.group("name")).strip(" .,-:;")
-            if len(name) < 3 or normalize(name) in _UNNAMED:
+            name = re.sub(r"\s+", " ", match.group("name")).strip(" .,-:;\"“”")
+            if len(name) < 3 or normalize(name) in _UNNAMED or normalize(name).startswith(("e ", "que ")):
                 continue
             # If speaker says "Akira usou" this is not an enemy technique.
             prefix = normalize(message[max(0, match.start() - 85):match.start()])
