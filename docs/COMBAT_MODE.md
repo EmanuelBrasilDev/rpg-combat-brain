@@ -18,7 +18,7 @@ Técnicas observadas não são duplicadas pelo nome normalizado, informações f
 
 ## Fluxo
 
-1. Cadastre as fichas na aba **Fichas de combate**. Cada aliado ou inimigo pode ter HP, EA, ESP, DES, níveis de Reforço/Output/Reversa/Domínio e técnicas próprias.
+1. Cadastre as fichas na aba **Fichas de combate**. Cada aliado ou inimigo pode ter HP, EA, Força, Velocidade, Resistência, Intelecto, Espírito (0–50), níveis de Reforço/Output/Reversa/Domínio e técnicas próprias.
 2. Na aba **Enemy Forge & Learning**, gere uma ficha original ou carregue uma referência. Clique **Adicionar esta ficha aos inimigos do combate** para copiar os dados. Essa ação é explícita e não torna as técnicas sintéticas regras oficiais.
 3. No chat da **Visão geral**, descreva o evento real:
    - "O inimigo usou Ataque de Garras e tirou 24 no acerto. Eu tentei esquivar e tirei 19. Recebi 35 de dano e atualizei meu HP para 565."
@@ -29,6 +29,12 @@ Técnicas observadas não são duplicadas pelo nome normalizado, informações f
 8. O relato confirmado fica disponível para \`CombatContextAnalyzer\` e \`CombatLearningSkill\`.
 9. Pergunte "Qual minha melhor ação agora?" e o agente usará o estado atual da ficha. Relatos ainda pendentes **não** são fatos e o histórico de ataques **não** significa que a ameaça continua ativa.
 10. Na aba **Enemy Forge & Learning**, a seção de experiências reais permite avaliar o relato como boa, neutra/inconclusiva ou ruim, com justificativa. Essas avaliações são registradas como feedback humano.
+
+## Atributos e modificadores
+
+Os cinco atributos canônicos são **Força, Velocidade, Resistência, Intelecto e Espírito**. O antigo campo \`dexterity\` é migrado para \`speed\` (Velocidade). O Akira possui valores iniciais confirmados **26, 34, 26, 30 e 34** nessa ordem. Valores já editados nas fichas antigas não são descartados.
+
+O modificador de cada atributo de **10 a 50** é \`(valor - 10) // 2\`, com 50 → +20. Valores abaixo de 10 ainda não possuem fórmula confirmada, e campos não informados permanecem desconhecidos. As comparações com inimigos exibem vantagens/desvantagens **informativas**, sem inventar bonificações para testes não descritos pelo mestre. Técnicas cuja notação usa \`ESP d10\` continuam multiplicando os dados pelo valor bruto de Espírito, e não pelo modificador.
 
 ## Segurança de estados
 
