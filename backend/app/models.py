@@ -14,6 +14,14 @@ class CombatTechnique(BaseModel):
     accuracy_bonus: str | None = Field(default=None, max_length=100)
     status: Literal["user_provided", "synthetic", "placeholder", "confirmed"] = "user_provided"
     observed: bool = False  # uso confirmado em combate, sem validar campos sintéticos prévios
+    category: Literal["technique", "extra"] = "technique"  # separação na ficha textual
+
+
+class CombatItem(BaseModel):
+    """Item conhecido do combatente; dano e descrição são opcionais."""
+    name: str = Field(min_length=1, max_length=100)
+    damage: str | None = Field(default=None, max_length=120)
+    effect: str | None = Field(default=None, max_length=400)
 
 
 class Character(BaseModel):
@@ -50,6 +58,7 @@ class Character(BaseModel):
     reverse_level: int | None = Field(default=None, ge=0, le=10)
     domain_level: int | None = Field(default=None, ge=0, le=10)
     techniques: list[CombatTechnique] = Field(default_factory=list, max_length=60)
+    items: list[CombatItem] = Field(default_factory=list, max_length=40)
     extra_metrics: dict[str, int | str | bool | None] = Field(default_factory=dict)
     sheet_origin: Literal["manual", "user_example", "synthetic"] = "manual"
     origin_warning: str = Field(default="", max_length=600)
