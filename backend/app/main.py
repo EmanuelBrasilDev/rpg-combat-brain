@@ -92,6 +92,28 @@ def patch_character(id: str, changes: dict = Body(...)):
         raise HTTPException(404, "Ficha não encontrada.")
     return updated
 
+@app.post("/api/characters/{id}/mega-brain/activate")
+def activate_mega_brain(id: str):
+    try:
+        sheet = store.mega_brain_action(id, "activate")
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+    if sheet is None:
+        raise HTTPException(404, "Ficha não encontrada.")
+    return sheet
+
+
+@app.post("/api/characters/{id}/mega-brain/interrupt")
+def interrupt_mega_brain(id: str):
+    try:
+        sheet = store.mega_brain_action(id, "interrupt")
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+    if sheet is None:
+        raise HTTPException(404, "Ficha não encontrada.")
+    return sheet
+
+
 @app.get("/api/events")
 def events():
     return store.list_events()

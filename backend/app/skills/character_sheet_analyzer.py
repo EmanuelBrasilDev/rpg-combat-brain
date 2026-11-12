@@ -17,6 +17,15 @@ class CharacterSheetAnalyzer:
             f"Forma: {character['form']} | Principais: {character['main_actions']} | Bônus: {character['bonus_actions']} | Reação: {'livre' if character['reaction_available'] else 'gasta'}",
         ]
         fields.extend(summarize_attributes(character))
+        if character["id"] == "akira":
+            active = "ATIVA" if character.get("mega_brain_active") else "inativa"
+            fields.append(
+                f"Mega Brain: {active}; duração restante "
+                f"{character.get('mega_brain_turns_remaining', 0)}t; cooldown restante "
+                f"{character.get('mega_brain_cooldown_remaining', 0)}t; 0 EA; "
+                "consome todas as ações bônus na ativação; d20 natural 15+ é crítico "
+                "somente enquanto ativa; CC encerra o estado."
+            )
         if character["team"] == "enemy":
             label = CurseGradeSkill().enemy_grade(character)
             if label:

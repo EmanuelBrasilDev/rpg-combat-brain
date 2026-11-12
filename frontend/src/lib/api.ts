@@ -72,6 +72,7 @@ export type CombatTechnique = {
   damage: string | null;
   ea_cost: number | null;
   cooldown: number | null;
+  duration_turns?: number | null;
   effect: string | null;
   accuracy_bonus: string | null;
   status: 'user_provided' | 'synthetic' | 'placeholder' | 'confirmed';
@@ -162,6 +163,9 @@ export interface Character {
   fangs_used: number;
   maw_used: number;
   amaterasu_used: number;
+  mega_brain_active: boolean;
+  mega_brain_turns_remaining: number;
+  mega_brain_cooldown_remaining: number;
   critical_count: number;
   reinforcement_used: number;
   output_used: number;
@@ -251,6 +255,10 @@ export const api = {
   catalog: () => request<Catalog>('/api/catalog'),
   characters: () => request<Character[]>('/api/characters'),
   exportCharacter: (id: string) => request<CharacterExport>('/api/characters/' + encodeURIComponent(id) + '/export'),
+  megaBrain: (id: string, action: 'activate' | 'interrupt') =>
+    request<Character>('/api/characters/' + encodeURIComponent(id) + '/mega-brain/' + action, {
+      method: 'POST'
+    }),
   addCharacter: (name: string, team: Team) =>
     request<Character>('/api/characters', { method: 'POST', body: JSON.stringify({ name, team }) }),
   patchCharacter: (id: string, values: Partial<Character>) =>

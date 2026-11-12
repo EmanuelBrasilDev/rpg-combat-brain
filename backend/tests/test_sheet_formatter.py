@@ -41,10 +41,10 @@ def test_akira_export_preserves_style_and_confirmed_values(client):
         "* Kenrykat (8d5 + 5d2) — Kokusen (0/3 críticos)",
     ):
         assert line in output, line
-    assert "Mega Brain" not in output  # não existe na ficha!
+    assert "* Mega Brain (0 EA; recarga base 2c; duração base 1t)" in output
     assert "Destreza" not in output
     assert "0c" not in output  # nenhum cooldown foi confirmado
-    assert "0t" not in output  # turnos restantes não são rastreados
+    assert "# Dragon Scales (0t" not in output  # formas ainda não rastreiam turnos; Mega Brain sim
     assert data["content"].endswith("\n")
 
 
@@ -114,7 +114,7 @@ def test_generic_enemy_export_respects_unknowns_and_custom_fields(client):
 def test_custom_items_abilities_and_effects_on_akira(client):
     response = client.patch("/api/characters/akira", json={
         "techniques": [
-            {"name": "Mega Brain", "category": "extra", "cooldown": 0},
+            {"name": "Mega Brain", "category": "extra", "cooldown": 2, "ea_cost": 0, "duration_turns": 1},
             {"name": "Lança Flamejante", "category": "technique",
              "cooldown": 2, "damage": "3d8", "ea_cost": 11}
         ],
@@ -124,7 +124,7 @@ def test_custom_items_abilities_and_effects_on_akira(client):
     })
     assert response.status_code == 200
     content = client.get("/api/characters/akira/export").json()["content"]
-    assert "# Habilidades Extras\n* Mega Brain (0c)" in content
+    assert "# Habilidades Extras\n* Mega Brain (0 EA; recarga base 2c; duração base 1t)" in content
     assert "# Técnicas" in content
     assert "* Lança Flamejante (2c; EA 11; dano 3d8)" in content
     assert "* Patuá (1d6) — defesa extra" in content

@@ -9,6 +9,7 @@ from pathlib import Path
 from .catalog import load_catalog
 from .models import Character
 from .skills.attributes import AKIRA_ATTRIBUTES, ATTRIBUTE_FIELDS, ATTRIBUTE_MAX, migrate_attribute_keys
+from .skills.mega_brain import mega_brain_technique, MegaBrainSkill
 
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "combat_brain.sqlite3"
 
@@ -33,7 +34,8 @@ def initialize():
             sheet = Character(
                 id="akira", name=catalog["name"], team="player",
                 level=catalog["level"], hp=catalog["hp_current"],
-                ea=catalog["ea_current"], **AKIRA_ATTRIBUTES
+                ea=catalog["ea_current"], **AKIRA_ATTRIBUTES,
+                techniques=[mega_brain_technique()]
             )
             db.execute("INSERT INTO characters VALUES(?,?)",
                        (sheet.id, sheet.model_dump_json()))
@@ -43,6 +45,10 @@ def initialize():
             for row in db.execute("SELECT id, payload FROM characters").fetchall():
                 old = json.loads(row["payload"])
                 upgraded = migrate_attribute_keys(old, seed_akira=row["id"] == "akira")
+                if row["id"] == "akira":
+                    existing = upgraded.get("techniques", [])
+                    if not any(str(t.get("name", "")).strip().casefold() == "mega brain" for t in existing):
+                        upgraded["techniques"] = [*existing, mega_brain_technique()]
                 # Antes desta versão não havia teto de 50. Preserve valores
                 # legados acima de 50 na ficha em vez de perdê-los na migração.
                 for field in ATTRIBUTE_FIELDS:
@@ -127,6 +133,31 @@ def update_character(id: str, changes: dict, kind: str = "edited") -> dict | Non
         _log(db, id, kind, before, after)
         return after
 
+def mega_brain_action(character_id: str, action: str) -> dict | None:
+    """Ação explícita do jogador; transação única, sem rolar dados ou inventar recursos."""
+    if action not in ("activate", "interrupt"):
+        raise ValueError("Ação inválida.")
+    with connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT payload FROM characters WHERE id=?", (character_id,)).fetchone()
+        if row is None:
+            return None
+        sheet = Character.model_validate(json.loads(row["payload"])).model_dump()
+        if sheet["id"] != "akira":
+            raise ValueError("Mega Brain está cadastrada apenas para Akira.")
+        skill = MegaBrainSkill()
+        if action == "activate":
+            changes = skill.activate_changes(sheet)
+        else:
+            changes = skill.interrupt_changes(sheet)
+        after = Character.model_validate({**sheet, **changes}).model_dump()
+        if after != sheet:
+            db.execute("UPDATE characters SET payload=? WHERE id=?",
+                       (json.dumps(after, ensure_ascii=False), character_id))
+            _log(db, character_id, "mega_brain_" + action, sheet, after)
+        return after
+
+
 def list_events(limit: int = 40) -> list[dict]:
     with connect() as db:
         rows = db.execute("SELECT * FROM events ORDER BY id DESC LIMIT ?", (min(limit, 100),)).fetchall()
@@ -165,7 +196,8 @@ def new_turn(character_id: str | None = None) -> list[dict]:
     for sheet in list_characters():
         if character_id is not None and sheet['id'] != character_id:
             continue
-        result.append(update_character(sheet["id"], {
-            "main_actions": 2, "bonus_actions": 2, "reaction_available": True
-        }, kind="new_turn"))
+        changes = {"main_actions": 2, "bonus_actions": 2, "reaction_available": True}
+        if sheet["id"] == "akira":
+            changes.update(MegaBrainSkill.next_turn_changes(sheet))
+        result.append(update_character(sheet["id"], changes, kind="new_turn"))
     return result

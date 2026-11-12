@@ -4,6 +4,24 @@ Assistente conversacional tático e **local-first** para o RPG **JJK — Era da 
 
 **Status: MVP v0.1 em desenvolvimento.** As recomendações são heurísticas explicáveis; não substituem as regras ou decisões do mestre.
 
+## Mega Brain — habilidade extra do Akira
+
+Habilidade real fornecida pelo jogador, cadastrada na seção **Habilidades Extras** do Akira, no catálogo e na exportação Markdown:
+
+- **Categoria:** Estado · **Alcance:** Pessoal · **Custo:** 0 EA
+- **Duração:** 1 turno · **Cooldown base:** 2 turnos
+- **Ativação:** consome TODAS as ações bônus restantes no turno de ativação
+- **Efeito:** durante a duração, resultados **naturais de 15+ no d20** contam como críticos
+- **Interrupção:** receber qualquer CC (Stun, Paralisia, Fear etc.) encerra imediatamente o estado
+
+O usuário pode clicar **Ativar Mega Brain** na ficha, ou escrever **"Ativei Mega Brain"** no chat e confirmar o relato pendente; nesse momento, as ações bônus vão a zero. A opção **Encerrar (CC / interrupção)** encerra o estado explicitamente. Um relato **"Sofri Stun"** pode propor a interrupção, que só ocorre após confirmação humana.
+
+O **Novo turno** confirmado encerra o estado de duração de um turno, restaura ações bônus e decrementa o cooldown restante em 1. **Convenção implementada:** a recarga inicia em 2 na ativação e avança a cada novo turno confirmado do Akira. Se o mestre contar cooldown de outra forma, é possível corrigir o campo **Cooldown restante** na ficha.
+
+A contagem de críticos **não é incrementada automaticamente**: o motor só sinaliza crítico por Mega Brain quando uma rolagem explicitamente indicada como **d20 natural** foi reportada, enquanto o estado está ativo. Totais com modificadores não ativam a regra por dedução. Nenhuma rolagem ou dano é criado pelo aplicativo.
+
+O cadastramento é idempotente para fichas antigas: se o Akira já tiver uma técnica "Mega Brain", o sistema não cria outra nem sobrescreve suas observações.
+
 ## Exportação de ficha em texto estilizado
 
 A **\`CharacterSheetFormatterSkill\`** lê o estado atual de qualquer ficha e produz Markdown pronto para colar em chat, Discord ou anotações do RPG. No painel **Fichas de combate**, use **Ficha em texto estilizado → Copiar texto**. A prévia atualiza quando você edita os dados da ficha. Também é possível escrever **"transforme a ficha do Akira em texto"** ou \`/ficha-texto\` no chat.

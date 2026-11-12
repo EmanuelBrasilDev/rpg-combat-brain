@@ -157,6 +157,22 @@
     reports = await api.combatReports();
     notify('Técnica salva no rascunho. Confirme o relato para incluí-la na ficha inimiga.');
   }
+  async function megaBrainAction(action: 'activate' | 'interrupt') {
+    if (!selected || selected.id !== 'akira' || pending) return;
+    pending = true;
+    try {
+      const result = await api.megaBrain(selected.id, action);
+      characters = characters.map((character) => character.id === result.id ? result : character);
+      events = await api.events();
+      notify(action === 'activate'
+        ? 'Mega Brain ativada: ações bônus consumidas; crítico natural 15+ no d20.'
+        : 'Mega Brain encerrada: cooldown preservado.');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Falha ao atualizar a Mega Brain.');
+    } finally {
+      pending = false;
+    }
+  }
   async function reviewNarrative(reportId: number, decision: 'confirmed' | 'discarded') {
     await api.reviewReport(reportId, decision);
     await refresh();
@@ -491,6 +507,20 @@
                 <label>Usos de Output<input type="number" min="0" max="30" value={selected.output_used} on:change={(e) => update('output_used', Number(e.currentTarget.value))}/></label>
                 <label>Usos de Energia Reversa<input type="number" min="0" max="20" value={selected.reverse_used} on:change={(e) => update('reverse_used', Number(e.currentTarget.value))}/></label>
               </div>
+              {#if selected.id === 'akira'}
+                <div class="field-group-title">Mega Brain — Estado especial</div>
+                <p class="sheet-hint">Estado pessoal · 0 EA · cooldown 2 turnos · duração 1 turno. Ativar consome todas as ações bônus deste turno; d20 natural 15+ conta como crítico enquanto ativo. Stun, Paralisia, Fear ou outro CC encerram o estado.</p>
+                <div class="field-grid">
+                  <label>Status atual<input value={selected.mega_brain_active ? 'ATIVA' : 'Inativa'} disabled/></label>
+                  <label>Turnos restantes<input type="number" value={selected.mega_brain_turns_remaining} disabled/></label>
+                  <label>Cooldown restante (turnos)<input type="number" min="0" max="2" step="1" value={selected.mega_brain_cooldown_remaining} on:change={(e) => update('mega_brain_cooldown_remaining', Number(e.currentTarget.value))}/></label>
+                </div>
+                <div class="sheet-actions">
+                  <span>Ativação explícita; nenhuma rolagem ou dano é realizado.</span>
+                  <button class="btn btn-primary" disabled={pending || selected.mega_brain_active || selected.mega_brain_cooldown_remaining > 0 || selected.bonus_actions === 0} on:click={() => megaBrainAction('activate')}>Ativar Mega Brain</button>
+                  <button class="btn btn-outline" disabled={pending || !selected.mega_brain_active} on:click={() => megaBrainAction('interrupt')}>Encerrar (CC / interrupção)</button>
+                </div>
+              {/if}
               <div class="field-group-title">Técnicas e habilidades extras</div>
               <p class="sheet-hint">As técnicas de inimigos podem ser editadas. Fórmulas e custos pendentes permanecem sem valor até serem confirmados; o motor atual ainda não executa todas essas técnicas automaticamente.</p>
               {#each selected.techniques ?? [] as technique, i}

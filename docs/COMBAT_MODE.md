@@ -2,6 +2,14 @@
 
 O jogador controla a narrativa com o mestre. O RPG Combat Brain **não executa uma luta sozinho**, não rola dados por conta própria e não aplica dano sem confirmação.
 
+## Mega Brain — estado do Akira
+
+A habilidade extra **Mega Brain** (Estado, Pessoal, 0 EA, duração 1 turno, cooldown 2 turnos) está registrada como regra fornecida pelo jogador. Para ativá-la, use **Ativar Mega Brain** na ficha do Akira ou informe **"Ativei Mega Brain"** e confirme o relato; todas as ações bônus restantes são consumidas, sem gasto de EA. Durante o turno ativo, resultados **naturais** de 15+ no d20 são críticos. **Stun, Paralisia, Fear** ou outro CC confirmado encerram o estado.
+
+O estado ativo, turnos restantes e cooldown restante são separados do cooldown **base**. O novo turno explicitamente avançado pelo jogador encerra o estado de 1 turno e reduz a recarga restante em 1 (contagem iniciada na ativação); o campo da ficha permite correção caso a convenção do mestre seja outra. A interrupção por CC não elimina o cooldown. A interpretação de relatos é conservadora e requer confirmação humana antes de mudar o estado.
+
+Sem indicação de que um número é um **resultado natural do d20**, o motor não presume crítico. Mesmo com resultado natural 15+, não modifica automaticamente o contador de Kokusen, pois os critérios de confirmação ainda dependem da mesa.
+
 ## Exportação estilizada da ficha
 
 A nova **CharacterSheetFormatterSkill** gera um texto Markdown da ficha persistida. O usuário pode copiar o resultado na aba **Fichas de combate** ou pedir pelo chat "ficha em texto", "ficha estilizada" ou \`/ficha-texto\`. Os campos são dinâmicos: HP, EA, atributos, usos de técnica, efeitos e habilidades personalizadas refletem os valores salvos.
