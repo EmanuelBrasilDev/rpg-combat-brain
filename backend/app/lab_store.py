@@ -28,12 +28,12 @@ def list_enemies(limit: int = 100) -> list[dict]:
     with connect() as db:
         rows = db.execute("SELECT payload FROM lab_enemies ORDER BY created_at DESC, rowid DESC LIMIT ?",
                           (min(100, max(1, limit)),)).fetchall()
-    return [json.loads(r["payload"]) for r in rows]
+    return [EnemyProfile.model_validate(json.loads(r["payload"])).model_dump() for r in rows]
 
 def get_enemy(enemy_id: str) -> dict | None:
     with connect() as db:
         row = db.execute("SELECT payload FROM lab_enemies WHERE id=?", (enemy_id,)).fetchone()
-    return json.loads(row["payload"]) if row else None
+    return EnemyProfile.model_validate(json.loads(row["payload"])).model_dump() if row else None
 
 def add_run(data: dict) -> dict:
     with connect() as db:

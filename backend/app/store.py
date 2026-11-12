@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .catalog import load_catalog
 from .models import Character
+from .skills.attributes import AKIRA_ATTRIBUTES, ATTRIBUTE_FIELDS, ATTRIBUTE_MAX, migrate_attribute_keys
 
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "combat_brain.sqlite3"
 
@@ -32,12 +33,30 @@ def initialize():
             sheet = Character(
                 id="akira", name=catalog["name"], team="player",
                 level=catalog["level"], hp=catalog["hp_current"],
-                ea=catalog["ea_current"], spirit=catalog["spirit"],
-                dexterity=catalog["dexterity"]
+                ea=catalog["ea_current"], **AKIRA_ATTRIBUTES
             )
             db.execute("INSERT INTO characters VALUES(?,?)",
                        (sheet.id, sheet.model_dump_json()))
             _log(db, sheet.id, "created", None, sheet.model_dump())
+        else:
+            # Atualiza as fichas legadas sem apagar personalizações do jogador.
+            for row in db.execute("SELECT id, payload FROM characters").fetchall():
+                old = json.loads(row["payload"])
+                upgraded = migrate_attribute_keys(old, seed_akira=row["id"] == "akira")
+                # Antes desta versão não havia teto de 50. Preserve valores
+                # legados acima de 50 na ficha em vez de perdê-los na migração.
+                for field in ATTRIBUTE_FIELDS:
+                    value = upgraded.get(field)
+                    if isinstance(value, int) and value > ATTRIBUTE_MAX:
+                        upgraded.setdefault("extra_metrics", {})[f"legacy_{field}_before_cap"] = value
+                        upgraded[field] = ATTRIBUTE_MAX
+                        note = f"Atributo {field} tinha {value} na versão antiga; original preservado em extra_metrics."
+                        upgraded["notes"] = (upgraded.get("notes", "") + "\n" + note).strip()[:3000]
+                new = Character.model_validate(upgraded).model_dump()
+                if new != old:
+                    db.execute("UPDATE characters SET payload=? WHERE id=?",
+                               (json.dumps(new, ensure_ascii=False), row["id"]))
+                    _log(db, row["id"], "attribute_migration", old, new)
 
 def _log(db, character_id, kind, before, after):
     db.execute(
@@ -73,8 +92,9 @@ def create_from_enemy(profile) -> dict:
                     "Ficha de referência: valores do exemplo do jogador; técnicas ausentes permanecem pendentes.")
     sheet = Character(
         id=str(uuid.uuid4())[:8], name=profile.name, team="enemy",
-        hp=profile.hp, ea=profile.ea, spirit=profile.spirit,
-        dexterity=profile.dexterity, tier=profile.tier,
+        hp=profile.hp, ea=profile.ea, strength=profile.strength,
+        speed=profile.speed, resistance=profile.resistance,
+        intellect=profile.intellect, spirit=profile.spirit, tier=profile.tier,
         reinforcement_level=profile.reinforcement_level,
         output_level=profile.output_level, reverse_level=profile.reverse_level,
         domain_level=profile.domain_level, extra_metrics=profile.extra_metrics,
@@ -93,7 +113,12 @@ def update_character(id: str, changes: dict, kind: str = "edited") -> dict | Non
         row = db.execute("SELECT payload FROM characters WHERE id=?", (id,)).fetchone()
         if not row:
             return None
-        before = json.loads(row["payload"])
+        before = Character.model_validate(json.loads(row["payload"])).model_dump()
+        # Compatibilidade opcional com clientes antigos: DES/dexterity -> Velocidade.
+        changes = dict(changes)
+        if "dexterity" in changes:
+            old_speed = changes.pop("dexterity")
+            changes.setdefault("speed", old_speed)
         after = Character.model_validate({**before, **changes}).model_dump()
         if after == before:
             return after
@@ -116,7 +141,7 @@ def list_events(limit: int = 40) -> list[dict]:
 def undo_last() -> dict | None:
     """Desfaz apenas o último evento, sem apagar o histórico (event sourcing leve)."""
     with connect() as db:
-        row = db.execute("SELECT * FROM events WHERE kind NOT IN ('undo','created') ORDER BY id DESC LIMIT 1").fetchone()
+        row = db.execute("SELECT * FROM events WHERE kind NOT IN ('undo','created','attribute_migration') ORDER BY id DESC LIMIT 1").fetchone()
         if not row:
             return None
         # Impede desfazer um evento já desfeito.

@@ -29,8 +29,11 @@
     "ea_current": 731,
     "hp_max": null,
     "ea_max": null,
-    "spirit": null,
-    "dexterity": null,
+    "strength": 26,
+    "speed": 34,
+    "resistance": 26,
+    "intellect": 30,
+    "spirit": 34,
     "specializations": {
       "mangekyou": 3,
       "reinforcement": 4,
@@ -124,7 +127,7 @@
       "range": "próprio usuário",
       "base_cost": null,
       "duration_turns": 4,
-      "dexterity_bonus": "8d2",
+      "speed_bonus": "8d2",
       "weapon_damage_bonus": "8d2 + 8d8 + 8d3",
       "status": "partial",
       "notes": "Alterna com Dragon Scales sem esperar cooldown; custo de ativação desconhecido.",
@@ -167,7 +170,7 @@
       "guaranteed_hit": true,
       "damage": "ESP d12 + (2 × ESP)d4",
       "ongoing": "(2 × ESP)d3, até remoção/extinção válida",
-      "debuff": "Desespero: -5d2 em testes de Destreza a Espírito (escopo/duração pendentes)",
+      "debuff": "Desespero: -5d2 em testes de Velocidade a Espírito (escopo/duração pendentes)",
       "status": "partial",
       "post_effect": "Output 3d4 + 8d4 = 11d4 após Amaterasu, duração ainda pendente",
       "notes": "Acerto garantido e chama contínua; desespero prejudica testes. Não extinguir por método convencional."
@@ -183,7 +186,7 @@
     }
   ],
   "pending": [
-    "Valores máximos de HP/EA e atributos exatos ESP/DES do Akira",
+    "Valores máximos de HP/EA do Akira (os cinco atributos foram informados)",
     "Custos de ativação de Dragon Scales / Assault",
     "Ordem e base exatas de todos os descontos (valores informados 35→25→16→11 não seguem percentuais declarados)",
     "Custo final de Maw, Flame Connection, Flames Shō e Output com votos",
@@ -267,7 +270,7 @@
       "akira_level": 3,
       "quote": "30/15 EA | 25/12 EA | 15/8 EA, dependendo das reduções (atribuição exata a confirmar)",
       "benefits": [
-        "1d5 ESP e DES",
+        "1d5 ESP e VEL",
         "3 reações por turno",
         "dano técnico: ESP d3"
       ],

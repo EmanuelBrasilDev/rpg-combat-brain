@@ -51,6 +51,12 @@
   function parseOptionalNumber(text: string): number | null {
     return text.trim() === '' ? null : Number(text);
   }
+  function attributeModifier(value: number | null): string {
+    if (value === null) return '—';
+    if (value < 10) return 'Mod. pendente de regra';
+    const modifier = Math.floor((value - 10) / 2);
+    return 'Mod. ' + (modifier >= 0 ? '+' : '') + modifier;
+  }
   function clean(text: string): string {
     return text.replace(/\*\*/g, '');
   }
@@ -420,7 +426,7 @@
           <section class="panel sheet-edit-panel">
             {#if selected}
               <div class="sheet-header"><div><span class="eyebrow">EDITAR ESTADO DO COMBATE</span><h2>{selected.name}</h2><p>As alterações são salvas e auditadas individualmente.</p></div><span class="saved-badge"><Check size={14}/> SQLite</span></div>
-              <div class="field-group-title">Identificação e atributos</div>
+              <div class="field-group-title">Identificação e recursos</div>
               <div class="field-grid">
                 <label>Nome<input value={selected.name} on:change={(e) => update('name', e.currentTarget.value)}/></label>
                 <label>Nível<input type="number" min="1" value={selected.level ?? ''} on:change={(e) => update('level', parseOptionalNumber(e.currentTarget.value))}/></label>
@@ -428,9 +434,16 @@
                 <label>HP máximo <small>(se conhecido)</small><input type="number" min="0" value={selected.max_hp ?? ''} on:change={(e) => update('max_hp', parseOptionalNumber(e.currentTarget.value))}/></label>
                 <label>EA atual<input type="number" min="0" value={selected.ea ?? ''} on:change={(e) => update('ea', parseOptionalNumber(e.currentTarget.value))}/></label>
                 <label>EA máxima <small>(se conhecida)</small><input type="number" min="0" value={selected.max_ea ?? ''} on:change={(e) => update('max_ea', parseOptionalNumber(e.currentTarget.value))}/></label>
-                <label>Espírito (ESP)<input type="number" min="0" value={selected.spirit ?? ''} on:change={(e) => update('spirit', parseOptionalNumber(e.currentTarget.value))}/></label>
-                <label>Destreza (DES)<input type="number" min="0" value={selected.dexterity ?? ''} on:change={(e) => update('dexterity', parseOptionalNumber(e.currentTarget.value))}/></label>
               </div>
+              <div class="field-group-title">Atributos — máximo 50 · +1 de modificador a cada 2 pontos acima de 10</div>
+              <div class="field-grid">
+                <label>Força <small>{attributeModifier(selected.strength)}</small><input type="number" min="0" max="50" step="1" value={selected.strength ?? ''} on:change={(e) => update('strength', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Velocidade <small>{attributeModifier(selected.speed)}</small><input type="number" min="0" max="50" step="1" value={selected.speed ?? ''} on:change={(e) => update('speed', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Resistência <small>{attributeModifier(selected.resistance)}</small><input type="number" min="0" max="50" step="1" value={selected.resistance ?? ''} on:change={(e) => update('resistance', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Intelecto <small>{attributeModifier(selected.intellect)}</small><input type="number" min="0" max="50" step="1" value={selected.intellect ?? ''} on:change={(e) => update('intellect', parseOptionalNumber(e.currentTarget.value))}/></label>
+                <label>Espírito <small>{attributeModifier(selected.spirit)}</small><input type="number" min="0" max="50" step="1" value={selected.spirit ?? ''} on:change={(e) => update('spirit', parseOptionalNumber(e.currentTarget.value))}/></label>
+              </div>
+              <p class="sheet-warning">Modificadores: 10 = +0, 12 = +1, 14 = +2, ..., 50 = +20. Valores inferiores a 10 não têm modificador confirmado. Os bônus só entram em rolagens com regra explícita.</p>
               <div class="field-group-title">Capacidades, origem e proficiências</div>
               {#if selected.origin_warning}
                 <p class="sheet-warning"><AlertCircle size={16}/>{selected.origin_warning}</p>

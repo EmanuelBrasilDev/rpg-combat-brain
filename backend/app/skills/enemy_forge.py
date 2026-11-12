@@ -75,8 +75,13 @@ class EnemyForgeSkill:
         # Escalas ARBITRÁRIAS do laboratório. Nunca confundir com estatísticas oficiais.
         hp = int((200 + difficulty * 100) * (1.30 if archetype == "defense" else 1))
         ea = int((110 + difficulty * 90) * (1.25 if archetype == "control" else 1))
-        spirit = max(1, difficulty * 2 + rng.randint(0, 4))
-        dexterity = max(1, difficulty * 2 + rng.randint(0, 4))
+        # Escala sintética 10..50 separada de grau da maldição.
+        base = 10 + difficulty * 4
+        strength = min(50, base + rng.randint(0, 4))
+        speed = min(50, base + rng.randint(0, 4))
+        resistance = min(50, base + rng.randint(0, 4))
+        intellect = min(50, base + rng.randint(0, 4))
+        spirit = min(50, base + rng.randint(0, 4))
         library = list(TECHNIQUE_LIBRARY[archetype])
         rng.shuffle(library)
         techniques: list[EnemyTechnique] = []
@@ -104,7 +109,8 @@ class EnemyForgeSkill:
             id=profile_id, name=f"{names[archetype]} · D{difficulty}/S{request.seed}",
             tier="Procedural (sem grau oficial)", origin="synthetic", template="procedural",
             archetype=archetype, difficulty=difficulty, seed=request.seed,
-            hp=hp, ea=ea, spirit=spirit, dexterity=dexterity,
+            hp=hp, ea=ea, strength=strength, speed=speed,
+            resistance=resistance, intellect=intellect, spirit=spirit,
             reinforcement_level=min(10, max(0, difficulty - 1)),
             output_level=min(10, max(0, difficulty - 1 if archetype != "control" else difficulty)),
             reverse_level=min(10, max(0, difficulty - 2)),

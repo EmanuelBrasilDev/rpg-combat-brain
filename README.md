@@ -21,6 +21,26 @@ Comando estruturado opcional para nomes difíceis:
 
 **Não confundir**: observar o uso de uma técnica sintética não valida todos os seus atributos previamente gerados. Essa origem permanece sinalizada na ficha.
 
+## Atributos do Akira — valores confirmados
+
+Os atributos da ficha do RPG são **Força 26**, **Velocidade 34**, **Resistência 26**, **Intelecto 30** e **Espírito 34** (máximo **50** por atributo). A nomenclatura canônica nas fichas é \`strength\`, \`speed\`, \`resistance\`, \`intellect\`, \`spirit\`; o antigo campo \`dexterity\` foi substituído por \`speed\`, mantendo migração compatível.
+
+| Atributo | Valor | Modificador |
+|---|---:|---:|
+| Força | 26 | +8 |
+| Velocidade | 34 | +12 |
+| Resistência | 26 | +8 |
+| Intelecto | 30 | +10 |
+| Espírito | 34 | +12 |
+
+Para valores **de 10 a 50**, o modificador é \`(atributo - 10) // 2\`: 10 → +0, 12 → +1, 14 → +2, ..., 50 → +20. Em valores ímpares usa-se o piso (interpretação conservadora). A regra de modificadores abaixo de 10 não foi informada: o sistema sinaliza como pendente, não inventa valores negativos.
+
+O Combat Brain mostra e compara esses valores para os inimigos, mantendo atributos não informados como desconhecidos. **Não soma modificadores a dano, acerto ou defesa sem regra específica.** Em uma fórmula como \`ESP d10\`, a quantidade de dados continua sendo o **valor bruto de Espírito**, e não o modificador.
+
+O banco SQLite atualiza registros antigos ao iniciar: renomeia \`dexterity\` para \`speed\`, preenche no Akira os campos que estavam vazios com os valores confirmados, e **preserva valores já editados**. Valores legados acima de 50 são arquivados em \`extra_metrics\` antes de aplicar o teto de 50. O histórico registra o evento \`attribute_migration\`.
+
+Exemplo de edição pelo chat: \`/set akira velocidade 36\` ou \`/set akira forca 28\`. Também é possível editar os cinco atributos na aba **Fichas de combate**.
+
 ## Hierarquia de graus das maldições
 
 **Regra de classificação:** **Grau Especial > Grau 1 > Grau 2 > Grau 3 > Grau 4**. Para graus numerados, um número **menor** indica uma maldição **mais forte**.
@@ -52,7 +72,7 @@ Documentação completa: [docs/COMBAT_MODE.md](docs/COMBAT_MODE.md).
 ## Funcionalidades
 
 - **Centro de comando responsivo**, com chat, estado de batalha, indicadores e ações disponíveis.
-- **Fichas editáveis** do Akira, aliados e inimigos, incluindo HP, EA, ESP, DES, habilidades usadas, forma ativa, reações e efeitos.
+- **Fichas editáveis** do Akira, aliados e inimigos, incluindo HP, EA, os cinco atributos reais, habilidades usadas, forma ativa, reações e efeitos.
 - **CharacterSheetAnalyzer** para consultas e comparação de fichas.
 - **16 Skills planejadas e módulos iniciais implementados:** conhecimentos, cálculos, combos, reações, análise adversária, interpretação, atualizações e respostas.
 - **Memória persistente** com SQLite: fichas, histórico de edição, conversas e desfazer a última edição.
@@ -152,7 +172,7 @@ A base \`backend/app/data/catalog.json\` foi estruturada a partir de **Sistema.t
 
 Exemplos de informações deliberadamente pendentes:
 
-- Akira **600 HP e 731 EA são valores atuais**. Máximos e valores exatos de ESP/DES não foram presumidos.
+- Akira **600 HP e 731 EA são valores atuais**. Os máximos de HP/EA continuam desconhecidos; os cinco atributos informados pelo jogador já foram cadastrados.
 - **Fangs custa 35 EA originalmente e 25 EA com Fornalha**, conforme confirmação. A progressão 35 → 25 → 16 → 11 informada não coincide com a composição direta dos percentuais declarados; outros custos e descontos são exibidos como incompletos.
 - Custos de ativação de **Dragon Scales / Dragon Assault** ainda não informados.
 - Efeitos completos de Kokusen, condições do pós-Amaterasu, rolamentos de defesa e duração de alguns efeitos ainda precisam de validação.
@@ -168,6 +188,6 @@ A v0.1 é executada **localmente**. É possível publicar futuramente o **fronte
 
 1. Separar ficha-base permanente de estado temporário de batalha.
 2. Padronizar execução confirmada de ações, turnos, cooldowns e custos.
-3. Confirmar atributos e regras ainda pendentes.
+3. Confirmar regras de rolagem para aplicar modificadores dos atributos a acerto, defesa e resistências.
 4. Integrar mais profundamente as Skills e calibrar avaliação estratégica com batalhas reais.
 5. Implementar usuários, sincronização e implantação online.

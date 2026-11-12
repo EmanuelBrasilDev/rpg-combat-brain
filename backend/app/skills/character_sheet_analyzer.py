@@ -1,6 +1,7 @@
 """Consulta as fichas e sinaliza dados ausentes, sem inventar atributos."""
 from ..catalog import load_catalog
 from .curse_grade import CurseGradeSkill
+from .attributes import summarize_attributes, ATTRIBUTE_FIELDS, ATTRIBUTE_LABELS, attribute_modifier
 
 class CharacterSheetAnalyzer:
     def summarize(self, character: dict) -> str:
@@ -12,9 +13,10 @@ class CharacterSheetAnalyzer:
             (f"/{character['max_hp']}" if character["max_hp"] is not None else " (máximo não informado)"),
             f"EA: {ea if ea is not None else 'desconhecida'}" +
             (f"/{character['max_ea']}" if character["max_ea"] is not None else " (máximo não informado)"),
-            f"Nível: {character['level'] or 'desconhecido'} | ESP: {character['spirit'] if character['spirit'] is not None else '?'} | DES: {character['dexterity'] if character['dexterity'] is not None else '?'}",
+            f"Nível: {character['level'] or 'desconhecido'}",
             f"Forma: {character['form']} | Principais: {character['main_actions']} | Bônus: {character['bonus_actions']} | Reação: {'livre' if character['reaction_available'] else 'gasta'}",
         ]
+        fields.extend(summarize_attributes(character))
         if character["team"] == "enemy":
             label = CurseGradeSkill().enemy_grade(character)
             if label:
@@ -53,7 +55,13 @@ class CharacterSheetAnalyzer:
         lines = ["**Fichas de combate cadastradas**"]
         for c in characters:
             role = {"player": "Jogador", "ally": "Aliado", "enemy": "Inimigo"}[c["team"]]
-            lines.append(f"• {c['name']} ({role}) — HP {c['hp'] if c['hp'] is not None else '?'} | EA {c['ea'] if c['ea'] is not None else '?'}")
+            stats = ", ".join(
+                f"{ATTRIBUTE_LABELS[field]} {c[field]} ({attribute_modifier(c[field]):+d})"
+                if attribute_modifier(c.get(field)) is not None else
+                f"{ATTRIBUTE_LABELS[field]} {c.get(field) if c.get(field) is not None else '?'}"
+                for field in ATTRIBUTE_FIELDS
+            )
+            lines.append(f"• {c['name']} ({role}) — HP {c['hp'] if c['hp'] is not None else '?'} | EA {c['ea'] if c['ea'] is not None else '?'} | {stats}")
         return "\n".join(lines)
 
     def available_abilities(self, character: dict) -> list[dict]:
