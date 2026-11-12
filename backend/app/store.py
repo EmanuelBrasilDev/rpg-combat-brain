@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .catalog import load_catalog
 from .models import Character
-from .skills.attributes import AKIRA_ATTRIBUTES, migrate_attribute_keys
+from .skills.attributes import AKIRA_ATTRIBUTES, ATTRIBUTE_FIELDS, ATTRIBUTE_MAX, migrate_attribute_keys
 
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "combat_brain.sqlite3"
 
@@ -43,6 +43,15 @@ def initialize():
             for row in db.execute("SELECT id, payload FROM characters").fetchall():
                 old = json.loads(row["payload"])
                 upgraded = migrate_attribute_keys(old, seed_akira=row["id"] == "akira")
+                # Antes desta versão não havia teto de 50. Preserve valores
+                # legados acima de 50 na ficha em vez de perdê-los na migração.
+                for field in ATTRIBUTE_FIELDS:
+                    value = upgraded.get(field)
+                    if isinstance(value, int) and value > ATTRIBUTE_MAX:
+                        upgraded.setdefault("extra_metrics", {})[f"legacy_{field}_before_cap"] = value
+                        upgraded[field] = ATTRIBUTE_MAX
+                        note = f"Atributo {field} tinha {value} na versão antiga; original preservado em extra_metrics."
+                        upgraded["notes"] = (upgraded.get("notes", "") + "\n" + note).strip()[:3000]
                 new = Character.model_validate(upgraded).model_dump()
                 if new != old:
                     db.execute("UPDATE characters SET payload=? WHERE id=?",
@@ -105,6 +114,11 @@ def update_character(id: str, changes: dict, kind: str = "edited") -> dict | Non
         if not row:
             return None
         before = Character.model_validate(json.loads(row["payload"])).model_dump()
+        # Compatibilidade opcional com clientes antigos: DES/dexterity -> Velocidade.
+        changes = dict(changes)
+        if "dexterity" in changes:
+            old_speed = changes.pop("dexterity")
+            changes.setdefault("speed", old_speed)
         after = Character.model_validate({**before, **changes}).model_dump()
         if after == before:
             return after
