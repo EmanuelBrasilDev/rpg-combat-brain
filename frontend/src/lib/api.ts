@@ -1,3 +1,67 @@
+export type EnemyTemplate = 'curse_grade_3' | 'mahito_reference' | 'procedural';
+export type EnemyArchetype = 'assault' | 'defense' | 'control' | 'balanced';
+export type LabScenario = 'opening' | 'under_attack' | 'close_combat' | 'long_range' | 'area';
+export interface EnemyTechnique {
+  name: string;
+  damage: string | null;
+  ea_cost: number | null;
+  cooldown: number | null;
+  effect: string | null;
+  accuracy_bonus: string | null;
+  status: 'user_provided' | 'synthetic' | 'placeholder';
+}
+export interface EnemyProfile {
+  id: string;
+  name: string;
+  tier: string | null;
+  origin: 'user_example' | 'synthetic';
+  template: EnemyTemplate;
+  archetype: EnemyArchetype | null;
+  difficulty: number | null;
+  seed: number;
+  hp: number | null;
+  ea: number | null;
+  spirit: number | null;
+  dexterity: number | null;
+  reinforcement_level: number | null;
+  output_level: number | null;
+  reverse_level: number | null;
+  domain_level: number | null;
+  extra_metrics: Record<string, string | number | boolean | null>;
+  techniques: EnemyTechnique[];
+  assumptions: string[];
+  approved_for_real_combat: boolean;
+}
+export interface LearningRun {
+  id: number;
+  enemy_id: string;
+  scenario: LabScenario;
+  recommendation: string | null;
+  score: number | null;
+  candidates_considered: number;
+  source: 'synthetic_benchmark';
+  warnings: string[];
+  actual_result: null;
+  verified: false;
+  created_at: string;
+  details: {
+    enemy_name: string;
+    explanation: string;
+    metrics_note: string;
+    alternatives: Alternate[];
+  };
+}
+export interface BenchmarkSummary {
+  tests: number;
+  tests_with_recommendation: number;
+  tests_without_recommendation: number;
+  unique_recommendations: number;
+  most_frequent_recommendations: { name: string; count: number }[];
+  scenarios: Record<string, number>;
+  learning_status: string;
+  limitation: string;
+}
+
 export type Team = 'player' | 'ally' | 'enemy';
 export type Form = 'none' | 'scales' | 'assault';
 
@@ -105,6 +169,16 @@ export const api = {
   events: () => request<BattleEvent[]>('/api/events'),
   undo: () => request<Character>('/api/events/undo', { method: 'POST' }),
   newTurn: (character_id: string) => request<{characters: Character[]}>('/api/turns/next', { method: 'POST', body: JSON.stringify({ character_id }) }),
+  labEnemies: () => request<EnemyProfile[]>('/api/lab/enemies'),
+  generateEnemy: (body: { template: EnemyTemplate; archetype: EnemyArchetype; difficulty: number; seed: number }) =>
+    request<EnemyProfile>('/api/lab/enemies/generate', { method: 'POST', body: JSON.stringify(body) }),
+  labRuns: () => request<LearningRun[]>('/api/lab/runs'),
+  evaluateEnemy: (body: { enemy_id: string; character_id: string; scenario: LabScenario }) =>
+    request<LearningRun>('/api/lab/evaluate', { method: 'POST', body: JSON.stringify(body) }),
+  benchmark: (body: { archetype: EnemyArchetype; difficulty: number; start_seed: number; samples: number; character_id: string }) =>
+    request<{ summary: BenchmarkSummary; runs: LearningRun[] }>('/api/lab/benchmarks', {
+      method: 'POST', body: JSON.stringify(body)
+    }),
   messages: () => request<ChatMessage[]>('/api/messages'),
   chat: (message: string, character_id: string) =>
     request<ChatResponse>('/api/chat', {
