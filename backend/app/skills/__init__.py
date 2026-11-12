@@ -1,0 +1,1 @@
+"""Skills determinísticas e independentes, sem chamadas a modelos de IA."""
