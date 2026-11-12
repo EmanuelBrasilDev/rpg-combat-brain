@@ -3,14 +3,15 @@
   import {
     Activity, AlertCircle, ArrowRight, BookOpen, BrainCircuit,
     Check, ChevronDown, ChevronRight, CircleHelp, Clock3,
-    Database, Flame, History, Menu, MessageCircle, Plus,
+    Database, Flame, FlaskConical, History, Menu, MessageCircle, Plus,
     RotateCcw, Send, Settings2, Shield, Skull, Sparkles,
     Swords, Target, Trash2, UserRound, UsersRound,
     X, Zap
   } from 'lucide-svelte';
   import { api, type Ability, type BattleEvent, type Catalog, type Character, type ChatMessage, type Team } from '$lib/api';
+  import LearningLab from '$lib/LearningLab.svelte';
 
-  type View = 'overview' | 'characters' | 'abilities' | 'history';
+  type View = 'overview' | 'characters' | 'abilities' | 'history' | 'lab';
   let view: View = 'overview';
   let characters: Character[] = [];
   let messages: ChatMessage[] = [];
@@ -200,6 +201,7 @@
         <button class:nav-active={view === 'overview'} on:click={() => changeView('overview')}><Activity size={18}/> Visão geral <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'characters'} on:click={() => changeView('characters')}><UserRound size={18}/> Fichas de combate <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'abilities'} on:click={() => changeView('abilities')}><Flame size={18}/> Arsenal de técnicas <ChevronRight size={15} class="nav-chevron"/></button>
+        <button class:nav-active={view === 'lab'} on:click={() => changeView('lab')}><FlaskConical size={18}/> Learning Lab <ChevronRight size={15} class="nav-chevron"/></button>
         <button class:nav-active={view === 'history'} on:click={() => changeView('history')}><History size={18}/> Histórico <ChevronRight size={15} class="nav-chevron"/></button>
       </nav>
 
@@ -229,7 +231,7 @@
     <header class="topbar">
       <div class="topbar-left">
         <button class="icon-btn menu-mobile" aria-label="Abrir menu" on:click={() => mobileMenu = true}><Menu size={21}/></button>
-        <div class="breadcrumbs"><span>WORKSPACE</span><ChevronRight size={14}/><strong>{view === 'overview' ? 'Centro de comando' : view === 'characters' ? 'Fichas de combate' : view === 'abilities' ? 'Arsenal de técnicas' : 'Histórico'}</strong></div>
+        <div class="breadcrumbs"><span>WORKSPACE</span><ChevronRight size={14}/><strong>{view === 'overview' ? 'Centro de comando' : view === 'characters' ? 'Fichas de combate' : view === 'abilities' ? 'Arsenal de técnicas' : view === 'lab' ? 'Learning Lab' : 'Histórico'}</strong></div>
       </div>
       <div class="topbar-actions">
         <span class="mode-pill"><span class="mode-dot"></span> LOCAL-FIRST</span>
@@ -440,6 +442,8 @@
           </section>
         </div>
 
+      {:else if view === 'lab'}
+        <LearningLab/>
       {:else if view === 'history'}
         <div class="page-heading">
           <div><div class="eyebrow"><span></span> MEMÓRIA PERSISTENTE</div><h1>Histórico de <em>Combate.</em></h1><p>Cada alteração confirmada na ficha fica registrada para revisão.</p></div>
