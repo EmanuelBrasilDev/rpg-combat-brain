@@ -3,12 +3,14 @@ from .combo_forge import ComboForge
 from .damage_calculator import DamageCalculator
 from .energy_optimizer import EnergyOptimizer
 from .dice_probability import expected_dice
+from .combat_specialists import EnemyAnalysisSkill
 
 class TacticalDecision:
     def __init__(self):
         self.forge = ComboForge()
         self.damage = DamageCalculator()
         self.energy = EnergyOptimizer()
+        self.enemy_analysis = EnemyAnalysisSkill()
 
     def analyze(self, character: dict, enemies: list[dict], message: str) -> dict:
         normalized = message.casefold()
@@ -81,6 +83,8 @@ class TacticalDecision:
             warnings.append("Alcance narrativo ainda não foi informado: golpes corpo a corpo dependem de proximidade válida.")
         if not enemies:
             warnings.append("Nenhum inimigo cadastrado. A análise considera apenas o estado do personagem.")
+        else:
+            warnings.extend(self.enemy_analysis.grade_cautions(enemies))
         if not best:
             return {
                 "answer": "Não encontrei uma sequência validada com os recursos atuais. Confira a ficha e as ações restantes.",

@@ -150,6 +150,7 @@
                 <option value={3}>3 — Média</option><option value={4}>4 — Alta</option>
                 <option value={5}>5 — Extrema</option>
               </select>
+              <small>Esta é a dificuldade SINTÉTICA do gerador (1 = fácil, 5 = extrema), não o Grau da maldição. Graus de maldições: Especial &gt; 1 &gt; 2 &gt; 3 &gt; 4.</small>
             </label>
           </div>
         {/if}

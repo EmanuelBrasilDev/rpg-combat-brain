@@ -1,5 +1,6 @@
 """Especialistas com responsabilidades específicas para exploração estratégica."""
 from .energy_optimizer import EnergyOptimizer
+from .curse_grade import CurseGradeSkill
 
 class OpeningArchitectSkill:
     def choose(self, candidates: list[dict]) -> list[dict]:
@@ -21,6 +22,12 @@ class ReactionMasterSkill:
         return result
 
 class EnemyAnalysisSkill:
+    def __init__(self):
+        self.grades = CurseGradeSkill()
+
+    def grade_cautions(self, enemies: list[dict]) -> list[str]:
+        return self.grades.cautions(enemies)
+
     def missing_information(self, enemies: list[dict]) -> list[str]:
         if not enemies:
             return ["Sem fichas de inimigos para comparação."]
