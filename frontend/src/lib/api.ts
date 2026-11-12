@@ -101,7 +101,7 @@ export const api = {
     }),
   events: () => request<BattleEvent[]>('/api/events'),
   undo: () => request<Character>('/api/events/undo', { method: 'POST' }),
-  newTurn: () => request<{characters: Character[]}>('/api/turns/next', { method: 'POST' }),
+  newTurn: (character_id: string) => request<{characters: Character[]}>('/api/turns/next', { method: 'POST', body: JSON.stringify({ character_id }) }),
   messages: () => request<ChatMessage[]>('/api/messages'),
   chat: (message: string, character_id: string) =>
     request<ChatResponse>('/api/chat', {
