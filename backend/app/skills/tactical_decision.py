@@ -5,7 +5,7 @@ from .energy_optimizer import EnergyOptimizer
 from .dice_probability import expected_dice
 from .combat_specialists import EnemyAnalysisSkill
 from .attribute_comparison import AttributeComparisonSkill
-from .skills.mega_brain import MegaBrainSkill
+from .mega_brain import MegaBrainSkill
 
 class TacticalDecision:
     def __init__(self):
@@ -84,6 +84,24 @@ class TacticalDecision:
             warnings.append("A sequência utiliza ao menos um custo original/pendente; a EA final exata requer confirmação.")
         if not close_range and not far_range:
             warnings.append("Alcance narrativo ainda não foi informado: golpes corpo a corpo dependem de proximidade válida.")
+        if character.get("id") == "akira":
+            if character.get("mega_brain_active"):
+                warnings.append(
+                    "Mega Brain ATIVA: resultado natural de 15+ no d20 é crítico; "
+                    "efeito termina com CC ou ao fim de 1 turno. "
+                    "Não alterei a pontuação de combos nem o contador de críticos sem rolagem real."
+                )
+            elif character.get("mega_brain_cooldown_remaining", 0) > 0:
+                warnings.append(
+                    f"Mega Brain em cooldown: {character['mega_brain_cooldown_remaining']} "
+                    "turno(s) restante(s) no controle local."
+                )
+            else:
+                warnings.append(
+                    "Mega Brain disponível como Estado: ativar consome todas as ações bônus "
+                    "restantes do turno, 0 EA; crítico 15+ no d20 natural durante 1 turno. "
+                    "Considere o custo de oportunidade antes da abertura."
+                )
         if not enemies:
             warnings.append("Nenhum inimigo cadastrado. A análise considera apenas o estado do personagem.")
         else:
