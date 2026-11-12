@@ -10,5 +10,5 @@ class BattleUpdateSkill:
     def undo(self):
         return store.undo_last()
 
-    def next_turn(self):
-        return store.new_turn()
+    def next_turn(self, character_id: str):
+        return store.new_turn(character_id)
