@@ -25,6 +25,16 @@ def test_validator_respects_limits():
     fangs = {"id":"fangs","main":1,"reaction":0,"offensive":1}
     assert not ActionValidator().check(sheet, [fangs])[0]
 
+def test_output_limit_is_respected():
+    sheet = {
+        'id':'akira','ea':100,'main_actions':2,'reaction_available':True,
+        'fangs_used':0,'maw_used':0,'amaterasu_used':0,'output_used':30,
+        'reinforcement_used':30
+    }
+    labels = [m['label'] for m in ComboForge().available_moves(sheet, False, True)]
+    assert not any('Output' in label or 'Reforço' in label for label in labels)
+
+
 def test_no_sequencing_with_no_actions():
     sheet = {
         "id":"akira","ea":200,"hp":600,"max_hp":None,
