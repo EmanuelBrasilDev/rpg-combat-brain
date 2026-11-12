@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from .models import Character
 from .skills.enemy_ability_discovery import EnemyAbilityDiscoverySkill
+from .skills.mega_brain import MegaBrainSkill
 from .store import connect, _log
 
 class CombatReportConflict(Exception):
@@ -130,8 +131,17 @@ def review(report_id: int, decision: Literal["confirmed", "discarded"]) -> dict 
                 before_raw = json.loads(current_row["payload"])
                 before = Character.model_validate(before_raw).model_dump()
                 snapshot = parsed["sheet_snapshots"].get(char_id, {})
+                if changes.get("mega_brain_active") is True and not before.get("mega_brain_active"):
+                    allowed, reason = MegaBrainSkill().can_activate(before)
+                    if not allowed:
+                        raise CombatReportConflict(
+                            "Ativação de Mega Brain não pode ser confirmada: " + reason
+                        )
                 for field, target in changes.items():
-                    if field not in ("hp", "ea", "reaction_available"):
+                    if field not in ("hp", "ea", "reaction_available",
+                                     "bonus_actions", "mega_brain_active",
+                                     "mega_brain_turns_remaining",
+                                     "mega_brain_cooldown_remaining"):
                         raise CombatReportConflict("Campo não permitido na atualização narrativa.")
                     current = before.get(field)
                     if current != target and current != snapshot.get(field):
