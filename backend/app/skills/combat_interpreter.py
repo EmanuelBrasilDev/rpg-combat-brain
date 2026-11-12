@@ -37,6 +37,10 @@ def interpret(message: str, characters: list[dict]) -> Interpretation:
     if any(token in raw for token in ("melhor", "combo", "abertura", "estrateg", "defender", "bloquear",
                                       "esquivar", "reagir", "contra-atac", "o que faco", "o que posso fazer", "sequencia")):
         return Interpretation("tactics")
+    if any(token in raw for token in ("regra", "turno funciona", "quantas acoes", "acoes principais")):
+        return Interpretation("rules")
+    if any(token in raw for token in ("fangs", "maw", "amaterasu", "dragon scales", "dragon assault", "kenrykat", "flame connection", "flames sho")):
+        return Interpretation("ability")
     if any(token in raw for token in ("ficha", "status", "quanto", "habilidade", "energia", "hp", "ea", "critico")):
         return Interpretation("sheet")
     return Interpretation("help")
