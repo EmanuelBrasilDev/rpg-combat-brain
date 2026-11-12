@@ -15,9 +15,10 @@ class TacticalDecision:
             ("me atac", "atacou", "vai atacar", "defend", "bloque", "esquiv", "reagir", "contra-atac", "ameaç"))
         close_range = any(x in normalized for x in
             ("corpo a corpo", "curta distancia", "curta distância", "perto", "proximo", "próximo", "adjacente"))
+        far_range = any(x in normalized for x in ("longe", "longa distancia", "longa distância", "muito distante"))
         area = any(x in normalized for x in ("grupo", "varios", "vários", "muitos", "area", "área", "multiplos", "múltiplos"))
         low_hp = character["hp"] is not None and character["max_hp"] is not None and character["max_hp"] > 0 and character["hp"] / character["max_hp"] < 0.30
-        sequences = self.forge.sequences(character, threat=threat, close_range=close_range)
+        sequences = self.forge.sequences(character, threat=threat, close_range=close_range, far_range=far_range)
         evaluations = []
         for seq in sequences:
             known_damage = 0.0
@@ -68,6 +69,8 @@ class TacticalDecision:
             warnings.append("ESP do Akira não cadastrada: dano das técnicas ESP dX não pode ser comparado numericamente.")
         if best and not best["cost_verified"]:
             warnings.append("A sequência utiliza ao menos um custo original/pendente; a EA final exata requer confirmação.")
+        if not close_range and not far_range:
+            warnings.append("Alcance narrativo ainda não foi informado: golpes corpo a corpo dependem de proximidade válida.")
         if not enemies:
             warnings.append("Nenhum inimigo cadastrado. A análise considera apenas o estado do personagem.")
         if not best:
