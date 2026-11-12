@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ClipboardCopy, Check, FileText, RotateCcw, AlertCircle } from 'lucide-svelte';
+  import { onMount } from 'svelte';
   import { api, type Character } from '$lib/api';
 
   export let character: Character;
@@ -10,9 +11,12 @@
   let error = '';
   let lastFingerprint = '';
   let latestRequest = 0;
+  let mounted = false;
+
+  onMount(() => { mounted = true; });
 
   $: fingerprint = JSON.stringify(character);
-  $: if (fingerprint !== lastFingerprint) {
+  $: if (mounted && fingerprint !== lastFingerprint) {
     lastFingerprint = fingerprint;
     void generate();
   }
