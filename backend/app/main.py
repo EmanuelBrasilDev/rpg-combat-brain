@@ -6,7 +6,10 @@ from pydantic import ValidationError
 
 from .catalog import load_catalog
 from .models import ChatRequest, ChatResponse, CreateCharacter
-from . import store, chat_store
+from . import store, chat_store, lab_store
+from .lab_models import EnemyProfile, GenerateEnemyRequest, EvaluateRequest, BatchRequest
+from .skills.enemy_forge import EnemyForgeSkill
+from .skills.learning_lab import LearningLabSkill, SCENARIOS
 from .skills.character_sheet_analyzer import CharacterSheetAnalyzer
 from .skills.combat_interpreter import interpret
 from .skills.tactical_decision import TacticalDecision
@@ -17,6 +20,7 @@ from .skills.battle_update import BattleUpdateSkill
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     store.initialize()
+    lab_store.initialize()
     yield
 
 app = FastAPI(title="RPG Combat Brain", version="0.1.0", lifespan=lifespan)
@@ -34,6 +38,8 @@ response_skill = TacticalResponse()
 rulebook_skill = RulebookSkill()
 akira_skill = AkiraProfileSkill()
 updates = BattleUpdateSkill()
+enemy_forge = EnemyForgeSkill()
+learning_lab = LearningLabSkill()
 
 @app.get("/api/health")
 def health():
@@ -142,3 +148,53 @@ def chat(body: ChatRequest):
     return ChatResponse(intent=parsed.intent, answer=answer,
                         alternatives=alternatives, warnings=warnings,
                         requires_confirmation=needs_confirmation)
+
+
+# LABORATÓRIO DE APRENDIZADO — dados simulados NUNCA alteram a batalha real.
+@app.get("/api/lab/enemies")
+def lab_enemies():
+    return lab_store.list_enemies()
+
+@app.post("/api/lab/enemies/generate", status_code=201)
+def generate_lab_enemy(body: GenerateEnemyRequest):
+    profile = enemy_forge.generate(body)
+    return lab_store.add_enemy(profile)
+
+@app.get("/api/lab/runs")
+def lab_runs():
+    return lab_store.list_runs()
+
+@app.post("/api/lab/evaluate")
+def evaluate_lab(body: EvaluateRequest):
+    opponent = lab_store.get_enemy(body.enemy_id)
+    if opponent is None:
+        raise HTTPException(404, "Adversário de teste não encontrado.")
+    character = store.get_character(body.character_id)
+    if character is None:
+        raise HTTPException(404, "Ficha ativa não encontrada.")
+    try:
+        run = learning_lab.evaluate(EnemyProfile.model_validate(opponent), character, body.scenario)
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+    return lab_store.add_run(run)
+
+@app.post("/api/lab/benchmarks")
+def benchmark_lab(body: BatchRequest):
+    character = store.get_character(body.character_id)
+    if character is None:
+        raise HTTPException(404, "Ficha ativa não encontrada.")
+    if body.start_seed + body.samples > 1_000_000:
+        raise HTTPException(422, "Sementes ultrapassam o limite configurado.")
+    if character["id"] != "akira":
+        raise HTTPException(422, "O motor de recomendações atual suporta apenas Akira.")
+    scenarios = list(SCENARIOS)
+    result = []
+    for index in range(body.samples):
+        profile = enemy_forge.generate(GenerateEnemyRequest(
+            template="procedural", archetype=body.archetype,
+            difficulty=body.difficulty, seed=body.start_seed + index
+        ))
+        lab_store.add_enemy(profile)
+        run = learning_lab.evaluate(profile, character, scenarios[index % len(scenarios)])
+        result.append(lab_store.add_run(run))
+    return {"summary": learning_lab.benchmark_summary(result), "runs": result}
