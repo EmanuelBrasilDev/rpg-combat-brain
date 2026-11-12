@@ -2,6 +2,7 @@
 from .combo_forge import ComboForge
 from .damage_calculator import DamageCalculator
 from .energy_optimizer import EnergyOptimizer
+from .dice_probability import expected_dice
 
 class TacticalDecision:
     def __init__(self):
@@ -31,6 +32,13 @@ class TacticalDecision:
                     missing_damage = True
                 else:
                     known_damage += dmg
+                if move.get('buff') == 'reinforcement':
+                    known_damage += expected_dice('8d5')
+                    notes.append('Reforço Nv4: +8d5 de dano físico; custo base +20 EA (reduções pendentes).')
+                elif move.get('buff') == 'output':
+                    boosted = any('pos-amaterasu' in e.casefold() or 'pós-amaterasu' in e.casefold() for e in character.get('effects', []))
+                    known_damage += expected_dice('11d4' if boosted else '3d4')
+                    notes.append(('Output pós-Amaterasu: +11d4.' if boosted else 'Output Nv3: +3d4.') + ' Custo base +10 EA (reduções pendentes).')
                 cost = self.energy.cost(move["id"])
                 costs.append(cost)
                 notes.append(detail)
@@ -44,10 +52,10 @@ class TacticalDecision:
                      + (16 if area and any("area" in m["tags"] for m in seq) else 0)
                      - (20 if threat and not defensive else 0)
                      - (12 if low_hp and not defensive else 0)
-                     - sum(c.value or 0 for c in costs) / 12)
+                     - (sum(c.value or 0 for c in costs) + sum(m.get('extra_cost', 0) for m in seq)) / 12)
             if missing_damage:
                 score -= 4
-            unknown_cost = any(c.status != "confirmed" for c in costs)
+            unknown_cost = any(c.status != "confirmed" for c in costs) or any(m.get('extra_cost') for m in seq)
             evaluations.append({
                 "title": " → ".join(m["label"] for m in seq),
                 "ids": [m["id"] for m in seq],
@@ -55,7 +63,7 @@ class TacticalDecision:
                 "main_actions": sum(m["main"] for m in seq),
                 "reaction": sum(m["reaction"] for m in seq),
                 "damage_expected": round(known_damage, 2) if not missing_damage else None,
-                "cost_reference": sum(c.value or 0 for c in costs),
+                "cost_reference": sum(c.value or 0 for c in costs) + sum(m.get('extra_cost', 0) for m in seq),
                 "cost_verified": not unknown_cost,
                 "notes": notes,
             })
