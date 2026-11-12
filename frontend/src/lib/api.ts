@@ -81,6 +81,18 @@ export type RollObservation = {
   source: string;
   context: string;
 };
+export type EnemyDiscovery = {
+  enemy_id: string | null;
+  name: string;
+  damage: string | null;
+  ea_cost: number | null;
+  cooldown: number | null;
+  effect: string | null;
+  evidence: string;
+  ignored: boolean;
+};
+export type EnemyDiscoveryEdit = Omit<EnemyDiscovery, 'evidence'> & { index: number };
+
 export type CombatReport = {
   id: number;
   character_id: string;
@@ -97,6 +109,7 @@ export type CombatReport = {
     damage_received: number | null;
     ea_spent: number | null;
     proposed_updates: Record<string, Partial<Character>>;
+    proposed_discoveries?: EnemyDiscovery[];
     warnings: string[];
     enemy_attack_observed: boolean;
   };
@@ -228,6 +241,10 @@ export const api = {
   newTurn: (character_id: string) => request<{characters: Character[]}>('/api/turns/next', { method: 'POST', body: JSON.stringify({ character_id }) }),
   combatReports: (status?: 'pending' | 'confirmed' | 'discarded') =>
     request<CombatReport[]>('/api/combat/reports' + (status ? '?status=' + status : '')),
+  saveDiscovery: (report_id: number, payload: EnemyDiscoveryEdit) =>
+    request<CombatReport>('/api/combat/reports/' + report_id + '/discovery', {
+      method: 'PATCH', body: JSON.stringify(payload)
+    }),
   reviewReport: (report_id: number, decision: 'confirmed' | 'discarded') =>
     request<CombatReport>('/api/combat/reports/' + report_id + '/review', {
       method: 'POST', body: JSON.stringify({ decision })
