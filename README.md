@@ -4,6 +4,26 @@ Assistente conversacional tático e **local-first** para o RPG **JJK — Era da 
 
 **Status: MVP v0.1 em desenvolvimento.** As recomendações são heurísticas explicáveis; não substituem as regras ou decisões do mestre.
 
+## Novo fluxo narrativo — Combat Mode + Learning Mode
+
+**Seu papel:** narrar acontecimentos reais, informar rolagens e habilidades utilizadas, editar fichas de combate e confirmar o que realmente ocorreu.
+
+**Papel do agente:** interpretar o relato por padrões, guardar os resultados de rolagens, acompanhar fichas, elaborar recomendações contextualizadas e coletar experiências reais confirmadas para análise posterior.
+
+**Skills novas:**
+- \`DiceRollInterpreter\` — separa fórmulas dos resultados efetivamente rolados e identifica autoria possível do teste;
+- \`CombatEventTracker\` — cria rascunhos de eventos e propõe apenas estados finais absolutos explícitos;
+- \`CombatContextAnalyzer\` — consulta relatos confirmados e dados recentes sem converter fatos antigos em ameaças atuais;
+- \`CombatLearningSkill\` — resume experiências reais confirmadas e avaliações do jogador, sem alterar pesos automaticamente.
+
+**Mudanças nas existentes:** Enemy Forge agora permite **copiar explicitamente** um inimigo gerado para a batalha real, com ficha e técnicas editáveis. O Learning Mode prioriza experiências reais; testes sintéticos continuam isolados e opcionais.
+
+**Exemplo:** "O inimigo tirou 24 no ataque. Eu tirei 19 na esquiva, recebi 35 de dano e atualizei meu HP para 565." O chat prepara um relato **pendente**. Você revisa e confirma. Se HP já foi atualizado no painel, **não será descontado novamente**. Se informar somente "35 de dano", nenhum valor será descontado automaticamente.
+
+> **Importante:** a interpretação é baseada em padrões locais, não em LLM. O usuário deve conferir os relatos; descrições complexas podem precisar de correção manual. A v0.3 registra aprendizado descritivo, mas ainda não treina pesos e nem executa ações de inimigos automaticamente.
+
+Documentação completa: [docs/COMBAT_MODE.md](docs/COMBAT_MODE.md).
+
 ## Funcionalidades
 
 - **Centro de comando responsivo**, com chat, estado de batalha, indicadores e ações disponíveis.
