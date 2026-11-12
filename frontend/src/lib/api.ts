@@ -76,6 +76,18 @@ export type CombatTechnique = {
   accuracy_bonus: string | null;
   status: 'user_provided' | 'synthetic' | 'placeholder' | 'confirmed';
   observed?: boolean;
+  category?: 'technique' | 'extra';
+};
+export type CombatItem = {
+  name: string;
+  damage: string | null;
+  effect: string | null;
+};
+export type CharacterExport = {
+  character_id: string;
+  character_name: string;
+  format: 'markdown';
+  content: string;
 };
 export type RollObservation = {
   actor: 'player' | 'enemy' | 'ally' | 'unknown';
@@ -162,6 +174,7 @@ export interface Character {
   reverse_level: number | null;
   domain_level: number | null;
   techniques: CombatTechnique[];
+  items: CombatItem[];
   extra_metrics: Record<string, string | number | boolean | null>;
   sheet_origin: 'manual' | 'user_example' | 'synthetic';
   origin_warning: string;
@@ -237,6 +250,7 @@ export const api = {
   health: () => request<{status: string}>('/api/health'),
   catalog: () => request<Catalog>('/api/catalog'),
   characters: () => request<Character[]>('/api/characters'),
+  exportCharacter: (id: string) => request<CharacterExport>('/api/characters/' + encodeURIComponent(id) + '/export'),
   addCharacter: (name: string, team: Team) =>
     request<Character>('/api/characters', { method: 'POST', body: JSON.stringify({ name, team }) }),
   patchCharacter: (id: string, values: Partial<Character>) =>
