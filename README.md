@@ -14,6 +14,19 @@ Assistente conversacional tático e **local-first** para o RPG **JJK — Era da 
 - **Motor tático inicial** que busca sequências de até duas ações, valida os limites, estima médias de dano quando há dados e informa incertezas.
 - **Catálogo inicial** de Akira baseado nos materiais e explicações fornecidos na conversa.
 
+## Learning Lab e Enemy Forge (nova aba)
+
+A aba **Learning Lab** permite gerar adversários de teste com **EnemyForgeSkill** e executar baterias de cenários pelo **LearningLabSkill**.
+
+- Perfis fornecidos como exemplo: **Maldição Grau 3** (300 HP, 200 EA, garras 5d8 + 3d2) e **Mahito** (1000 HP, 1200 EA, seis técnicas pendentes).
+- Perfis **procedurais**, com arquétipos de ataque, defesa, controle e equilíbrio; dificuldade 1–5, seed reproduzível e técnicas hipotéticas.
+- Níveis de Reforço, Output, Reversa e Domínio simulados **apenas** em adversários procedurais, sem declarar esses números oficiais.
+- Avaliações por cenário (abertura, sob ataque, curto alcance, longo alcance e área) e lotes para testes repetidos.
+- Dados laboratoriais armazenados em tabelas SQLite **separadas das fichas e eventos reais**.
+- Sem fingir vitórias: os resultados atuais são **benchmarks da qualidade/cobertura da recomendação**, não uma luta bilateral completa nem provas de sucesso. Não atualizam automaticamente os pesos do motor.
+
+Detalhes: **[docs/LEARNING_LAB.md](docs/LEARNING_LAB.md)**.
+
 ## Como executar localmente
 
 Pré-requisitos: **Python 3.11+**, **Node.js 20+**.
