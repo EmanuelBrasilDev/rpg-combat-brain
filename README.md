@@ -4,6 +4,23 @@ Assistente conversacional tático e **local-first** para o RPG **JJK — Era da 
 
 **Status: MVP v0.1 em desenvolvimento.** As recomendações são heurísticas explicáveis; não substituem as regras ou decisões do mestre.
 
+## Descoberta gradual das técnicas inimigas
+
+A \`EnemyAbilityDiscoverySkill\` cria propostas de técnicas inimigas com base nas ações **observadas** durante o combate. O sistema não exige conhecer todas as habilidades do inimigo desde o início.
+
+Exemplo no chat: **"Mahito usou Transfiguração Ociosa, cooldown 2 turnos, custa 30 EA, efeito: transforma o alvo ao tocar."**
+
+1. O motor reconhece a técnica e tenta localizar a ficha do inimigo nomeado. Se houver mais de um inimigo sem identificação clara, você escolhe a ficha.
+2. Um painel em **Relatos de combate** permite revisar **nome, inimigo, dano, EA, cooldown e efeito** e salvar a proposta.
+3. Somente após **Confirmar relato** a técnica é vinculada à ficha real, de forma transacional.
+4. Campos desconhecidos continuam vazios. Se a técnica já existir, o motor preenche somente informações faltantes; divergências com dados já registrados bloqueiam a atualização.
+5. O histórico real inclui o novo conhecimento, mas a ferramenta ainda não faz cálculo automático de todas as habilidades do adversário.
+
+Comando estruturado opcional para nomes difíceis:
+\`@tecnica Mahito | Transfiguração Ociosa | cd=2 | dano=5d8+3d2 | ea=30 | efeito: altera a forma do alvo\`.
+
+**Não confundir**: observar o uso de uma técnica sintética não valida todos os seus atributos previamente gerados. Essa origem permanece sinalizada na ficha.
+
 ## Novo fluxo narrativo — Combat Mode + Learning Mode
 
 **Seu papel:** narrar acontecimentos reais, informar rolagens e habilidades utilizadas, editar fichas de combate e confirmar o que realmente ocorreu.
