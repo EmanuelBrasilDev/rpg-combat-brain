@@ -31,18 +31,7 @@ class CombatContextAnalyzer:
         return {"summary": "\n".join(summary), "latest": latest, "warnings": warnings}
 
     def tactical_prompt(self, message: str, context: dict) -> str:
-        # Só usa fatos narrativos confirmados no cálculo, nunca relatos pendentes.
-        latest = context.get("latest")
-        if not latest:
-            return message
-        text = normalize(message)
-        if any(word in text for word in ("atacou", "me atac", "corpo a corpo", "longe", "perto")):
-            return message
-        event = latest["parsed"]
-        descriptions = []
-        if event.get("enemy_attack_observed"):
-            descriptions.append("o inimigo atacou")
-        if event.get("outcome") == "miss_or_defense":
-            descriptions.append("um teste de defesa foi relatado")
-        # Não completa alcance ou gasto de reação por dedução.
-        return message + (". Contexto confirmado: " + "; ".join(descriptions) if descriptions else "")
+        """Não transforma um ataque do turno anterior em ameaça imediata."""
+        # O motor lê a ficha já atualizada. Fatos históricos são exibidos
+        # como contexto, mas não convertem um ataque PASSADO em ataque ATUAL.
+        return message
