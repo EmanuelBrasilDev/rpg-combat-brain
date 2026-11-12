@@ -49,6 +49,8 @@ def _ability_line(technique: dict) -> str:
     details.append(f"{_value(cooldown)}c")
     if technique.get("ea_cost") is not None:
         details.append(f"EA {technique['ea_cost']}")
+    if technique.get("duration_turns") is not None:
+        details.append(f"duração {technique['duration_turns']}t")
     if technique.get("damage"):
         details.append(f"dano {_safe(technique['damage'])}")
     if technique.get("accuracy_bonus"):
@@ -102,7 +104,21 @@ class CharacterSheetFormatterSkill:
         self._section(lines, "Habilidades Extras")
         extra = [t for t in character["techniques"] if t["category"] == "extra"]
         if extra:
-            lines.extend(_ability_line(t) for t in extra)
+            for t in extra:
+                if is_akira and t["name"].casefold().strip() == "mega brain":
+                    state = "ATIVA" if character["mega_brain_active"] else "inativa"
+                    cd = character["mega_brain_cooldown_remaining"]
+                    turns = character["mega_brain_turns_remaining"]
+                    lines.append(
+                        f"* Mega Brain (0 EA; recarga base 2c; duração base 1t) "
+                        f"— {state}; CD restante {cd}t; duração restante {turns}t"
+                    )
+                    lines.append(
+                        "* Efeito: d20 NATURAL 15+ = Crítico apenas enquanto ativa; "
+                        "ativação consome TODAS as ações bônus; CC encerra o estado"
+                    )
+                else:
+                    lines.append(_ability_line(t))
         else:
             lines.append("* Nenhuma cadastrada")
 
