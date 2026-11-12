@@ -1,12 +1,20 @@
 <script lang="ts">
   import { Check, ClipboardCheck, Clock3, Dices, ShieldAlert, X } from 'lucide-svelte';
-  import type { CombatReport } from '$lib/api';
+  import type { CombatReport, Character, EnemyDiscoveryEdit } from '$lib/api';
+  import EnemyAbilityReview from '$lib/EnemyAbilityReview.svelte';
 
   export let reports: CombatReport[] = [];
   export let selectedId: string = 'akira';
+  export let characters: Character[] = [];
+  export let onSaveDiscovery: (id: number, edit: EnemyDiscoveryEdit) => Promise<void>;
   export let onReview: (id: number, decision: 'confirmed' | 'discarded') => Promise<void>;
 
   let working: number | null = null;
+  let discoveryDirty: Record<string, boolean> = {};
+  $: enemies = characters.filter((c) => c.team === 'enemy');
+  function onDirty(key: string, value: boolean) { discoveryDirty = { ...discoveryDirty, [key]: value }; }
+  function hasUnsaved(id: number) { return Object.entries(discoveryDirty).some(([key, v]) => v && key.startsWith(id + ':')); }
+  function unresolved(r: CombatReport) { return (r.parsed.proposed_discoveries ?? []).some(d=>!d.ignored && !d.enemy_id); }
   let error = '';
   $: pending = reports.filter((r) => r.status === 'pending' && r.character_id === selectedId);
   $: confirmed = reports.filter((r) => r.status === 'confirmed' && r.character_id === selectedId);
@@ -51,8 +59,11 @@
               {/each}
             </div>
           {/if}
+          {#each report.parsed.proposed_discoveries ?? [] as discovery, index (index)}
+            <EnemyAbilityReview reportId={report.id} {index} {discovery} {enemies} onSave={onSaveDiscovery} {onDirty}/>
+          {/each}
           <div class="journal-actions">
-            <button disabled={working !== null} on:click={() => review(report.id, 'confirmed')} class="confirm"><Check size={15}/> Confirmar relato</button>
+            <button disabled={working !== null || hasUnsaved(report.id) || unresolved(report)} title={hasUnsaved(report.id) ? 'Salve as correções da técnica primeiro.' : unresolved(report) ? 'Identifique o inimigo ou ignore a descoberta.' : 'Confirmar relato'} on:click={() => review(report.id, 'confirmed')} class="confirm"><Check size={15}/> Confirmar relato</button>
             <button disabled={working !== null} on:click={() => review(report.id, 'discarded')}><X size={15}/> Descartar</button>
           </div>
         </article>
