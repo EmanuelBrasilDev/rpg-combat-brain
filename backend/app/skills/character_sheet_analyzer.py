@@ -23,8 +23,21 @@ class CharacterSheetAnalyzer:
         if levels:
             fields.append("Proficiências: " + ", ".join(f"{name} Nv{value}" for name, value in levels))
         if character.get("techniques"):
-            techniques = [t["name"] for t in character["techniques"]]
-            fields.append("Técnicas registradas: " + ", ".join(techniques[:15]))
+            techniques = []
+            for technique in character["techniques"][:15]:
+                info = technique["name"]
+                if technique.get("cooldown") is not None:
+                    info += f" (recarga {technique['cooldown']} turnos)"
+                if technique.get("ea_cost") is not None:
+                    info += f" (EA {technique['ea_cost']})"
+                if technique.get("damage"):
+                    info += f" (dano {technique['damage']})"
+                if technique.get("effect"):
+                    info += f" — {technique['effect']}"
+                if technique.get("status") == "synthetic":
+                    info += " [mecânica sintética, não validada]"
+                techniques.append(info)
+            fields.append("Técnicas registradas:\n" + "\n".join("• " + info for info in techniques))
         if character.get("sheet_origin") == "synthetic":
             fields.append("Atenção: ficha sintética, não oficial; requer revisão.")
         if character["effects"]:

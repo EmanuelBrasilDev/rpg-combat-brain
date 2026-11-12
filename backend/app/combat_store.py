@@ -4,10 +4,23 @@ from datetime import datetime, timezone
 from typing import Literal
 from pydantic import BaseModel, Field
 from .models import Character
+from .skills.enemy_ability_discovery import EnemyAbilityDiscoverySkill
 from .store import connect, _log
 
 class CombatReportConflict(Exception):
     """A ficha foi alterada desde o rascunho e não coincide com o estado relatado."""
+
+class EnemyDiscoveryEdit(BaseModel):
+    """O jogador corrige a extração antes de confirmar o acontecimento."""
+    index: int = Field(ge=0)
+    enemy_id: str | None = None
+    name: str = Field(default="", max_length=100)
+    cooldown: int | None = Field(default=None, ge=0, le=999)
+    ea_cost: int | None = Field(default=None, ge=0)
+    damage: str | None = Field(default=None, max_length=120)
+    effect: str | None = Field(default=None, max_length=400)
+    ignored: bool = False
+
 
 class CombatFeedback(BaseModel):
     rating: Literal["good", "neutral", "bad"]
@@ -64,6 +77,39 @@ def get_report(report_id: int) -> dict | None:
         row = db.execute("SELECT * FROM combat_reports WHERE id=?", (report_id,)).fetchone()
     return _to_report(row) if row else None
 
+def edit_discovery(report_id: int, edit: EnemyDiscoveryEdit) -> dict | None:
+    """Alteração atômica no RASCUNHO, sem modificar ficha antes da confirmação."""
+    with connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT * FROM combat_reports WHERE id=?", (report_id,)).fetchone()
+        if not row:
+            return None
+        if row["status"] != "pending":
+            raise CombatReportConflict("Descobertas já revisadas não podem ser modificadas.")
+        parsed = json.loads(row["payload"])
+        discoveries = parsed.get("proposed_discoveries", [])
+        if edit.index >= len(discoveries):
+            raise CombatReportConflict("Descoberta não encontrada nesse relato.")
+        if edit.enemy_id is not None:
+            enemy = db.execute("SELECT payload FROM characters WHERE id=?", (edit.enemy_id,)).fetchone()
+            if not enemy or Character.model_validate(json.loads(enemy["payload"])).team != "enemy":
+                raise CombatReportConflict("Selecione uma ficha de inimigo válida.")
+        old = discoveries[edit.index]
+        discoveries[edit.index] = {
+            **old,
+            "enemy_id": edit.enemy_id,
+            "name": edit.name.strip(),
+            "cooldown": edit.cooldown,
+            "ea_cost": edit.ea_cost,
+            "damage": edit.damage.strip() if edit.damage else None,
+            "effect": edit.effect.strip() if edit.effect else None,
+            "ignored": edit.ignored
+        }
+        db.execute("UPDATE combat_reports SET payload=? WHERE id=?",
+                   (json.dumps(parsed, ensure_ascii=False), report_id))
+        return _to_report(db.execute("SELECT * FROM combat_reports WHERE id=?", (report_id,)).fetchone())
+
+
 def review(report_id: int, decision: Literal["confirmed", "discarded"]) -> dict | None:
     """Confirma estados finais absolutos; não subtrai dano nem energia por dedução."""
     with connect() as db:
@@ -98,6 +144,31 @@ def review(report_id: int, decision: Literal["confirmed", "discarded"]) -> dict 
                     db.execute("UPDATE characters SET payload=? WHERE id=?",
                                (json.dumps(after, ensure_ascii=False), char_id))
                     _log(db, char_id, "report_confirmed_update", before, after)
+            discover = EnemyAbilityDiscoverySkill()
+            for proposal in parsed.get("proposed_discoveries", []):
+                if proposal.get("ignored"):
+                    continue
+                enemy_id = proposal.get("enemy_id")
+                if not enemy_id:
+                    raise CombatReportConflict(
+                        "Selecione o inimigo responsável pela técnica antes de confirmar, "
+                        "ou marque a descoberta como ignorada."
+                    )
+                row_enemy = db.execute("SELECT payload FROM characters WHERE id=?", (enemy_id,)).fetchone()
+                if not row_enemy:
+                    raise CombatReportConflict("O inimigo associado não está mais cadastrado.")
+                previous = Character.model_validate(json.loads(row_enemy["payload"])).model_dump()
+                if previous["team"] != "enemy":
+                    raise CombatReportConflict("A técnica só pode ser vinculada a fichas de inimigos.")
+                try:
+                    techniques = discover.merged_techniques(previous, proposal)
+                    revised = Character.model_validate({**previous, "techniques": techniques}).model_dump()
+                except (ValueError, TypeError) as error:
+                    raise CombatReportConflict(str(error))
+                if previous != revised:
+                    db.execute("UPDATE characters SET payload=? WHERE id=?",
+                               (json.dumps(revised, ensure_ascii=False), enemy_id))
+                    _log(db, enemy_id, "ability_discovered", previous, revised)
         stamp = datetime.now(timezone.utc).isoformat()
         db.execute("UPDATE combat_reports SET status=?, reviewed_at=? WHERE id=?",
                    (decision, stamp, report_id))

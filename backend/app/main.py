@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from .catalog import load_catalog
 from .models import ChatRequest, ChatResponse, CreateCharacter
 from . import store, chat_store, lab_store, combat_store
-from .combat_store import CombatFeedback, CombatReportConflict
+from .combat_store import CombatFeedback, CombatReportConflict, EnemyDiscoveryEdit
 from .skills.combat_event_tracker import CombatEventTracker
 from .skills.combat_context_analyzer import CombatContextAnalyzer
 from .skills.combat_learning import CombatLearningSkill
@@ -148,10 +148,11 @@ def chat(body: ChatRequest):
             summary = [
                 f"**Relato #{report_id} preparado para revisão.**",
                 f"Técnicas reconhecidas: {', '.join(draft['techniques']) or 'nenhuma identificada'}.",
+                f"Novas habilidades inimigas propostas: {', '.join(x['name'] for x in draft.get('proposed_discoveries', [])) or 'nenhuma'}.",
                 f"Rolagens informadas: {', '.join(results) or 'nenhum total explícito'}.",
                 f"Resultado narrado: {draft['outcome']}.",
                 f"Estados finais candidatos: {changes or 'nenhum'}",
-                "Use **Confirmar relato** no painel para incorporá-lo à memória de combate. "
+                "Revise as habilidades descobertas (inimigo, nome, efeito e cooldown) no painel antes de confirmar. "
                 "HP/EA só serão alterados por valores FINAIS explícitos; não há descontos automáticos."
             ]
             answer = "\n".join(summary)
@@ -202,6 +203,16 @@ def chat(body: ChatRequest):
 @app.get("/api/combat/reports")
 def reports(status: Literal["pending", "confirmed", "discarded"] | None = None):
     return combat_store.list_reports(status)
+
+@app.patch("/api/combat/reports/{report_id}/discovery")
+def edit_report_discovery(report_id: int, body: EnemyDiscoveryEdit):
+    try:
+        report = combat_store.edit_discovery(report_id, body)
+    except CombatReportConflict as error:
+        raise HTTPException(409, str(error))
+    if report is None:
+        raise HTTPException(404, "Relato não encontrado.")
+    return report
 
 @app.post("/api/combat/reports/{report_id}/review")
 def review_report(report_id: int, decision: Literal["confirmed", "discarded"] = Body(embed=True)):

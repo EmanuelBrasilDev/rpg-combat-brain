@@ -12,6 +12,7 @@ class CombatLearningSkill:
         for item in confirmed:
             data = item["parsed"]
             techniques.update(data.get("techniques", []))
+            techniques.update(p["name"] for p in data.get("proposed_discoveries", []) if not p.get("ignored") and p.get("name"))
             outcomes[data.get("outcome", "unknown")] += 1
             rolls_known += sum(roll.get("total") is not None for roll in data.get("rolls", []))
         return {

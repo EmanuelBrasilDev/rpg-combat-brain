@@ -14,6 +14,8 @@ def normalize(text: str) -> str:
 
 def interpret(message: str, characters: list[dict]) -> Interpretation:
     raw = normalize(message).strip()
+    if raw.startswith("@tecnica "):
+        return Interpretation("combat_report")
     # Alterações persistentes requerem verbo explícito ou /set.
     # /set akira ea 400
     match = re.fullmatch(r"/set\s+(.+?)\s+(hp|ea|esp|des)\s+(\d+)", raw)
@@ -37,7 +39,7 @@ def interpret(message: str, characters: list[dict]) -> Interpretation:
     if any(token in raw for token in ("melhor", "combo", "abertura", "estrateg", "defender", "bloquear",
                                       "esquivar", "reagir", "contra-atac", "o que faco", "o que posso fazer", "sequencia")):
         return Interpretation("tactics")
-    if any(token in raw for token in ("usou", "utilizou", "atacou", "tentei", "tirei",
+    if any(token in raw for token in ("revelou", "ativou", "executou", "usou", "utilizou", "atacou", "tentei", "tirei",
                                       "tirou", "recebi", "tomei", "esquivei", "rolou",
                                       "gastei", "gastou", "acertou", "falhou", "atualizei")):
         return Interpretation("combat_report")
