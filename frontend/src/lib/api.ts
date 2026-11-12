@@ -64,6 +64,53 @@ export interface BenchmarkSummary {
 
 export type Team = 'player' | 'ally' | 'enemy';
 export type Form = 'none' | 'scales' | 'assault';
+export type CombatTechnique = {
+  name: string;
+  damage: string | null;
+  ea_cost: number | null;
+  cooldown: number | null;
+  effect: string | null;
+  accuracy_bonus: string | null;
+  status: 'user_provided' | 'synthetic' | 'placeholder' | 'confirmed';
+};
+export type RollObservation = {
+  actor: 'player' | 'enemy' | 'ally' | 'unknown';
+  kind: string;
+  expression: string | null;
+  total: number | null;
+  source: string;
+  context: string;
+};
+export type CombatReport = {
+  id: number;
+  character_id: string;
+  status: 'pending' | 'confirmed' | 'discarded';
+  created_at: string;
+  reviewed_at: string | null;
+  feedback: { rating: 'good' | 'neutral' | 'bad'; note: string } | null;
+  parsed: {
+    message: string;
+    character_id: string;
+    rolls: RollObservation[];
+    techniques: string[];
+    outcome: string;
+    damage_received: number | null;
+    ea_spent: number | null;
+    proposed_updates: Record<string, Partial<Character>>;
+    warnings: string[];
+    enemy_attack_observed: boolean;
+  };
+};
+export type LearningOverview = {
+  confirmed_reports: number;
+  feedback_count: number;
+  feedback: { good: number; neutral: number; bad: number };
+  reported_roll_results: number;
+  techniques_observed: { name: string; count: number }[];
+  reported_outcomes: Record<string, number>;
+  learning_status: string;
+  note: string;
+};
 
 export interface Character {
   id: string;
@@ -89,6 +136,15 @@ export interface Character {
   reverse_used: number;
   effects: string[];
   notes: string;
+  tier: string | null;
+  reinforcement_level: number | null;
+  output_level: number | null;
+  reverse_level: number | null;
+  domain_level: number | null;
+  techniques: CombatTechnique[];
+  extra_metrics: Record<string, string | number | boolean | null>;
+  sheet_origin: 'manual' | 'user_example' | 'synthetic';
+  origin_warning: string;
 }
 
 export interface Alternate {
@@ -137,6 +193,7 @@ export interface ChatResponse {
   answer: string;
   alternatives: Alternate[];
   warnings: string[];
+  report_id: number | null;
 }
 const BASE = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
@@ -169,6 +226,19 @@ export const api = {
   events: () => request<BattleEvent[]>('/api/events'),
   undo: () => request<Character>('/api/events/undo', { method: 'POST' }),
   newTurn: (character_id: string) => request<{characters: Character[]}>('/api/turns/next', { method: 'POST', body: JSON.stringify({ character_id }) }),
+  combatReports: (status?: 'pending' | 'confirmed' | 'discarded') =>
+    request<CombatReport[]>('/api/combat/reports' + (status ? '?status=' + status : '')),
+  reviewReport: (report_id: number, decision: 'confirmed' | 'discarded') =>
+    request<CombatReport>('/api/combat/reports/' + report_id + '/review', {
+      method: 'POST', body: JSON.stringify({ decision })
+    }),
+  feedbackReport: (report_id: number, rating: 'good' | 'neutral' | 'bad', note = '') =>
+    request<CombatReport>('/api/combat/reports/' + report_id + '/feedback', {
+      method: 'POST', body: JSON.stringify({ rating, note })
+    }),
+  learningOverview: () => request<LearningOverview>('/api/learning/overview'),
+  adoptEnemy: (id: string) =>
+    request<Character>('/api/lab/enemies/' + encodeURIComponent(id) + '/adopt', { method: 'POST' }),
   labEnemies: () => request<EnemyProfile[]>('/api/lab/enemies'),
   generateEnemy: (body: { template: EnemyTemplate; archetype: EnemyArchetype; difficulty: number; seed: number }) =>
     request<EnemyProfile>('/api/lab/enemies/generate', { method: 'POST', body: JSON.stringify(body) }),
