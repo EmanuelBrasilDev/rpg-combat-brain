@@ -2,6 +2,16 @@
 
 O jogador controla a narrativa com o mestre. O RPG Combat Brain **não executa uma luta sozinho**, não rola dados por conta própria e não aplica dano sem confirmação.
 
+## Exportação estilizada da ficha
+
+A nova **CharacterSheetFormatterSkill** gera um texto Markdown da ficha persistida. O usuário pode copiar o resultado na aba **Fichas de combate** ou pedir pelo chat "ficha em texto", "ficha estilizada" ou \`/ficha-texto\`. Os campos são dinâmicos: HP, EA, atributos, usos de técnica, efeitos e habilidades personalizadas refletem os valores salvos.
+
+Nas seções de Akira, Dragon Scales/Assault, Mangekyō Sharingan, técnicas e Kenrykat são exibidos com **valores conhecidos do catálogo**; equipamentos e habilidades extras só aparecem se cadastrados. Fichas de inimigos usam **seus próprios dados**, sem emprestar o arsenal do Akira.
+
+As marcações \`?c\` (cooldown desconhecido) e \`?t\` (turnos restantes desconhecidos) impedem que o sistema declare cooldown ou duração restante de zero sem evidência. A exportação é somente leitura, sem rolagens, sem ações executadas ou alteração de HP/EA.
+
+API: \`GET /api/characters/{id}/export\`.
+
 ## Descoberta de habilidades inimigas
 
 Ao contrário da ficha inicial, as técnicas dos inimigos surgem gradualmente. A **EnemyAbilityDiscoverySkill** reconhece habilidades relatadas e cria um rascunho na mesma memória de combate. Exemplo:
