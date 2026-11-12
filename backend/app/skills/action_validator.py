@@ -18,6 +18,10 @@ class ActionValidator:
             limit = 1 if ability == "amaterasu" else 6
             if character[field] + uses > limit:
                 reasons.append(f"Limite de uso de {ability} excedido.")
+        if character.get("reinforcement_used", 0) + sum(m.get("buff") == "reinforcement" for m in moves) > 30:
+            reasons.append("Limite de Reforço (30) excedido.")
+        if character.get("output_used", 0) + sum(m.get("buff") == "output" for m in moves) > 30:
+            reasons.append("Limite de Output (30) excedido.")
         costs = [self.energy.cost(m["id"]) for m in moves]
         confirmed_sum = sum(c.value or 0 for c in costs if c.status == "confirmed")
         # Custos originais podem cair com Votos/Eficiência; só rejeitamos
