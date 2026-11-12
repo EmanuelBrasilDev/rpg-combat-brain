@@ -28,6 +28,8 @@ class EnergyOptimizer:
         if ability_id == "fangs":
             return EnergyCost(25, "confirmed",
                 "25 EA é o custo padrão com Fornalha confirmado pelo jogador; outros descontos ainda dependem de validação.")
+        if ability_id in ("block", "dodge"):
+            return EnergyCost(0, "confirmed", "Reação básica; custo de EA não definido como obrigatório no sistema.")
         if ability_id == "kenrykat":
             return EnergyCost(0, "confirmed", "Golpe base com a arma; não inclui Reforço.")
         if ability_id == "amaterasu":
