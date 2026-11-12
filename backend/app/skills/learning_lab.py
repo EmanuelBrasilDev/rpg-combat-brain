@@ -21,7 +21,9 @@ class LearningLabSkill:
             raise ValueError("O motor estratégico atual só possui catálogo específico para Akira.")
         summary = {
             "name": enemy.name, "team": "enemy", "hp": enemy.hp,
-            "ea": enemy.ea, "spirit": enemy.spirit, "dexterity": enemy.dexterity
+            "ea": enemy.ea, "tier": enemy.tier, "strength": enemy.strength,
+            "speed": enemy.speed, "resistance": enemy.resistance,
+            "intellect": enemy.intellect, "spirit": enemy.spirit
         }
         report = self.decision.analyze(character, [summary], SCENARIOS[scenario])
         candidates = report["alternatives"]
