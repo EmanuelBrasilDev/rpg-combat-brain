@@ -44,7 +44,7 @@ def test_akira_export_preserves_style_and_confirmed_values(client):
     assert "* Mega Brain (0 EA; recarga base 2c; duração base 1t)" in output
     assert "Destreza" not in output
     assert "0c" not in output  # nenhum cooldown foi confirmado
-    assert "0t" not in output  # turnos restantes não são rastreados
+    assert "# Dragon Scales (0t" not in output  # formas ainda não rastreiam turnos; Mega Brain sim
     assert data["content"].endswith("\n")
 
 
