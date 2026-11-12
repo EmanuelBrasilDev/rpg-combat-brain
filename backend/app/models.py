@@ -10,6 +10,7 @@ class CombatTechnique(BaseModel):
     damage: str | None = Field(default=None, max_length=120)
     ea_cost: int | None = Field(default=None, ge=0)
     cooldown: int | None = Field(default=None, ge=0)
+    duration_turns: int | None = Field(default=None, ge=0)
     effect: str | None = Field(default=None, max_length=400)
     accuracy_bonus: str | None = Field(default=None, max_length=100)
     status: Literal["user_provided", "synthetic", "placeholder", "confirmed"] = "user_provided"
@@ -46,6 +47,9 @@ class Character(BaseModel):
     fangs_used: int = Field(default=0, ge=0, le=6)
     maw_used: int = Field(default=0, ge=0, le=6)
     amaterasu_used: int = Field(default=0, ge=0, le=1)
+    mega_brain_active: bool = False
+    mega_brain_turns_remaining: int = Field(default=0, ge=0, le=1)
+    mega_brain_cooldown_remaining: int = Field(default=0, ge=0, le=2)
     critical_count: int = Field(default=0, ge=0, le=3)
     reinforcement_used: int = Field(default=0, ge=0, le=30)
     output_used: int = Field(default=0, ge=0, le=30)
