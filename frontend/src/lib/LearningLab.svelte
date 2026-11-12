@@ -185,8 +185,11 @@
           <div class="lab-stats">
             <div><small>HP</small><strong>{numeric(selected.hp)}</strong></div>
             <div><small>EA</small><strong>{numeric(selected.ea)}</strong></div>
+            <div><small>FOR</small><strong>{numeric(selected.strength)}</strong></div>
+            <div><small>VEL</small><strong>{numeric(selected.speed)}</strong></div>
+            <div><small>RES</small><strong>{numeric(selected.resistance)}</strong></div>
+            <div><small>INT</small><strong>{numeric(selected.intellect)}</strong></div>
             <div><small>ESP</small><strong>{numeric(selected.spirit)}</strong></div>
-            <div><small>DES</small><strong>{numeric(selected.dexterity)}</strong></div>
           </div>
           <div class="section-caption"><BrainCircuit size={14}/> PROFICIÊNCIAS</div>
           <div class="prof-grid">
