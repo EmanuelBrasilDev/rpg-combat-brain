@@ -14,6 +14,14 @@ def normalize(text: str) -> str:
 
 def interpret(message: str, characters: list[dict]) -> Interpretation:
     raw = normalize(message).strip()
+    if (raw.startswith("/ficha-texto") or
+            any(phrase in raw for phrase in (
+                "ficha em texto", "ficha estilizada", "ficha formatada",
+                "exportar ficha", "exporte a ficha", "formate a ficha",
+                "transforme a ficha em texto", "transformar a ficha em texto",
+                "ficha markdown", "exportacao de ficha"
+            ))):
+        return Interpretation("sheet_export")
     if raw.startswith("@tecnica "):
         return Interpretation("combat_report")
     # Alterações persistentes requerem verbo explícito ou /set.
