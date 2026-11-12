@@ -46,9 +46,17 @@ class CombatEventTracker:
         if actor["id"] == "akira" and actor.get("mega_brain_active"):
             for roll in rolls:
                 context = normalize(roll.get("context") or "")
-                if (roll["actor"] == "player" and roll["total"] is not None
-                    and re.search(r"\bd20\b", context)
-                    and re.search(r"\b(?:natural|puro|sem modificador|sem bonus)\b", context)):
+                number = roll["total"]
+                matched_natural = (
+                    number is not None
+                    and re.search(
+                        rf"\b(?:tirei|rolei|tirou|resultado)\s+{number}\s+"
+                        r"(?:no\s+|em\s+)?d20\s+"
+                        r"(?:natural|puro|sem\s+(?:modificador|bonus))\b",
+                        context
+                    )
+                )
+                if roll["actor"] == "player" and matched_natural:
                     roll["mega_brain_critical"] = MegaBrainSkill.is_critical(
                         actor, roll["total"]
                     )
