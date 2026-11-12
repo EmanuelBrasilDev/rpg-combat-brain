@@ -21,6 +21,14 @@ Comando estruturado opcional para nomes difíceis:
 
 **Não confundir**: observar o uso de uma técnica sintética não valida todos os seus atributos previamente gerados. Essa origem permanece sinalizada na ficha.
 
+## Hierarquia de graus das maldições
+
+**Regra de classificação:** **Grau Especial > Grau 1 > Grau 2 > Grau 3 > Grau 4**. Para graus numerados, um número **menor** indica uma maldição **mais forte**.
+
+O \`CurseGradeSkill\` reconhece graus explícitos da ficha e sinaliza cautela adicional quando o adversário é Grau 1 ou Especial, sem presumir danos, estatísticas ou uma derrota inevitável. Se o grau não for informado, permanece desconhecido.
+
+**Atenção:** o campo \`difficulty\` da geração procedural (1 a 5) é uma escala **sintética e independente**, na qual valores maiores geram adversários de teste mais fortes. Ele **não** representa graus de maldição. Não é convertível automaticamente para Grau 4/3/2/1/Especial.
+
 ## Novo fluxo narrativo — Combat Mode + Learning Mode
 
 **Seu papel:** narrar acontecimentos reais, informar rolagens e habilidades utilizadas, editar fichas de combate e confirmar o que realmente ocorreu.
