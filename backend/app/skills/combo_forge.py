@@ -28,6 +28,13 @@ class ComboForge:
                 dict(id="block", label="Bloquear", main=0, reaction=1, offensive=0, tags=["defense"]),
                 dict(id="dodge", label="Esquivar", main=0, reaction=1, offensive=0, tags=["defense"])
             ]
+        boosted = []
+        for move in moves:
+            if move['id'] == 'kenrykat':
+                boosted.append({**move, 'label': 'Reforço Nv4 + ' + move['label'], 'buff': 'reinforcement', 'extra_cost': 20, 'extra_damage': 24.0})
+            if move['id'] in ('fangs', 'maw'):
+                boosted.append({**move, 'label': 'Output Nv3 + ' + move['label'], 'buff': 'output', 'extra_cost': 10, 'extra_damage': 7.5})
+        moves.extend(boosted)
         return [m for m in moves if self.validator.check(character, [m])[0]]
 
     def sequences(self, character: dict, threat=False, close_range=False, far_range=False) -> list[list[dict]]:
