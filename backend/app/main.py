@@ -11,6 +11,8 @@ from .skills.character_sheet_analyzer import CharacterSheetAnalyzer
 from .skills.combat_interpreter import interpret
 from .skills.tactical_decision import TacticalDecision
 from .skills.tactical_response import TacticalResponse
+from .skills.knowledge import RulebookSkill, AkiraProfileSkill
+from .skills.battle_update import BattleUpdateSkill
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +31,9 @@ app.add_middleware(
 analyzer = CharacterSheetAnalyzer()
 decision = TacticalDecision()
 response_skill = TacticalResponse()
+rulebook_skill = RulebookSkill()
+akira_skill = AkiraProfileSkill()
+updates = BattleUpdateSkill()
 
 @app.get("/api/health")
 def health():
@@ -70,8 +75,10 @@ def undo():
     return sheet
 
 @app.post("/api/turns/next")
-def next_turn():
-    return {"characters": store.new_turn()}
+def next_turn(character_id: str = Body(embed=True)):
+    if not store.get_character(character_id):
+        raise HTTPException(404, "Ficha não encontrada.")
+    return {"characters": updates.next_turn(character_id)}
 
 @app.get("/api/messages")
 def messages():
@@ -99,10 +106,14 @@ def chat(body: ChatRequest):
         undone = store.undo_last()
         answer = "Última edição desfeita.\n" + analyzer.summarize(undone) if undone else "Nenhuma edição recente disponível para desfazer."
     elif parsed.intent == "new_turn":
-        store.new_turn()
-        answer = "Novo turno registrado: ações principais e bônus restauradas, reação disponível. Efeitos e cooldowns não foram alterados automaticamente."
+        updates.next_turn(character['id'])
+        answer = "Novo turno de " + character['name'] + " registrado: ações principais e bônus restauradas, reação disponível. Efeitos e cooldowns não foram alterados automaticamente."
     elif parsed.intent == "unknown_character":
         answer = "Não encontrei essa ficha. Confira o nome exato no painel de personagens."
+    elif parsed.intent == "rules":
+        answer = rulebook_skill.turn_rules() + "\nHá também regras específicas e pendências listadas no arsenal do site."
+    elif parsed.intent == "ability":
+        answer = akira_skill.describe_ability(body.message) or "Não encontrei a técnica solicitada no catálogo. Confira o nome no Arsenal."
     elif parsed.intent == "sheet":
         named = next((c for c in sheets if c["name"].casefold() in body.message.casefold()), None)
         if any(word in body.message.casefold() for word in ("todos", "aliados", "inimigos", "equipe")):
