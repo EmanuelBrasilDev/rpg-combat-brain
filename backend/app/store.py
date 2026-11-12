@@ -9,6 +9,7 @@ from pathlib import Path
 from .catalog import load_catalog
 from .models import Character
 from .skills.attributes import AKIRA_ATTRIBUTES, ATTRIBUTE_FIELDS, ATTRIBUTE_MAX, migrate_attribute_keys
+from .skills.mega_brain import mega_brain_technique, MegaBrainSkill
 
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "combat_brain.sqlite3"
 
@@ -33,7 +34,8 @@ def initialize():
             sheet = Character(
                 id="akira", name=catalog["name"], team="player",
                 level=catalog["level"], hp=catalog["hp_current"],
-                ea=catalog["ea_current"], **AKIRA_ATTRIBUTES
+                ea=catalog["ea_current"], **AKIRA_ATTRIBUTES,
+                techniques=[mega_brain_technique()]
             )
             db.execute("INSERT INTO characters VALUES(?,?)",
                        (sheet.id, sheet.model_dump_json()))
@@ -43,6 +45,10 @@ def initialize():
             for row in db.execute("SELECT id, payload FROM characters").fetchall():
                 old = json.loads(row["payload"])
                 upgraded = migrate_attribute_keys(old, seed_akira=row["id"] == "akira")
+                if row["id"] == "akira":
+                    existing = upgraded.get("techniques", [])
+                    if not any(str(t.get("name", "")).strip().casefold() == "mega brain" for t in existing):
+                        upgraded["techniques"] = [*existing, mega_brain_technique()]
                 # Antes desta versão não havia teto de 50. Preserve valores
                 # legados acima de 50 na ficha em vez de perdê-los na migração.
                 for field in ATTRIBUTE_FIELDS:
@@ -165,7 +171,8 @@ def new_turn(character_id: str | None = None) -> list[dict]:
     for sheet in list_characters():
         if character_id is not None and sheet['id'] != character_id:
             continue
-        result.append(update_character(sheet["id"], {
-            "main_actions": 2, "bonus_actions": 2, "reaction_available": True
-        }, kind="new_turn"))
+        changes = {"main_actions": 2, "bonus_actions": 2, "reaction_available": True}
+        if sheet["id"] == "akira":
+            changes.update(MegaBrainSkill.next_turn_changes(sheet))
+        result.append(update_character(sheet["id"], changes, kind="new_turn"))
     return result
