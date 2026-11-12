@@ -152,3 +152,36 @@ def test_tactic_uses_only_confirmed_history(client):
     advised2 = client.post("/api/chat", json={"message": "Qual a melhor jogada agora?"}).json()
     assert advised2["intent"] == "tactics"
     assert not any("aguardando" in x for x in advised2["warnings"])
+
+
+def test_ambiguous_hp_does_not_update_player(client):
+    draft = client.post("/api/chat", json={
+        "message": "O inimigo atacou. O HP ficou em 250."
+    }).json()["report_id"]
+    assert draft is not None
+    pending = client.get("/api/combat/reports?status=pending").json()[0]
+    assert pending["parsed"]["proposed_updates"] == {}
+    confirmed = client.post(f"/api/combat/reports/{draft}/review",
+                            json={"decision": "confirmed"})
+    assert confirmed.status_code == 200
+    assert client.get("/api/characters").json()[0]["hp"] == 600
+
+
+def test_explicit_enemy_hp_target_does_not_touch_akira(client):
+    enemy = client.post("/api/characters", json={
+        "name": "Maldição Grau 3", "team": "enemy"
+    }).json()
+    client.patch("/api/characters/" + enemy["id"], json={"hp": 300})
+    before = client.get("/api/characters").json()
+    draft = client.post("/api/chat", json={
+        "message": "O inimigo atacou e o HP da Maldição Grau 3 ficou em 250."
+    }).json()["report_id"]
+    pending = client.get("/api/combat/reports?status=pending").json()[0]
+    assert pending["parsed"]["proposed_updates"][enemy["id"]]["hp"] == 250
+    assert "akira" not in pending["parsed"]["proposed_updates"]
+    confirmed = client.post(f"/api/combat/reports/{draft}/review",
+                            json={"decision": "confirmed"})
+    assert confirmed.status_code == 200
+    sheets = client.get("/api/characters").json()
+    assert sheets[0]["hp"] == 600
+    assert next(c for c in sheets if c["id"] == enemy["id"])["hp"] == 250
