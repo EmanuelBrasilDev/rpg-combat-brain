@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import ExperiencePanel from '$lib/ExperiencePanel.svelte';
+  import SheetExportPanel from '$lib/SheetExportPanel.svelte';
   import {
     AlertTriangle, ArrowRight, Beaker, BookOpen, BrainCircuit,
     CheckCircle2, ChevronRight, Database, Dices, FlaskConical,
@@ -211,6 +212,7 @@
             {/each}
           </div>
           <details class="assumptions"><summary><AlertTriangle size={14}/> Premissas e limites da geração</summary>{#each selected.assumptions as assumption}<p>{assumption}</p>{/each}</details>
+          <SheetExportPanel character={selected} source="lab"/>
           <button class="lab-adopt" disabled={busy} on:click={adopt}><Swords size={17}/> Adicionar esta ficha aos inimigos do combate</button>
           <p class="lab-explain">Esta ação cria uma cópia editável na ficha real. A origem fictícia ou incompleta continuará identificada.</p>
           <div class="lab-divider"></div>
