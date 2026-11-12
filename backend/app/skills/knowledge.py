@@ -1,6 +1,7 @@
 """Conhecimento: regras, perfil Akira e estado persistido."""
 from ..catalog import ability, load_catalog
 from ..store import list_characters, list_events
+from ..combat_store import list_reports
 
 class RulebookSkill:
     def turn_rules(self) -> str:
@@ -39,4 +40,5 @@ class AkiraProfileSkill:
 
 class CombatMemorySkill:
     def snapshot(self) -> dict:
-        return {"characters": list_characters(), "events": list_events()}
+        return {"characters": list_characters(), "events": list_events(),
+                "confirmed_reports": list_reports("confirmed", 30)}
