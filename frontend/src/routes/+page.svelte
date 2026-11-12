@@ -152,10 +152,10 @@
     }
   }
   async function newTurn() {
-    if (pending) return;
+    if (pending || !selected) return;
     pending = true;
     try {
-      await api.newTurn();
+      await api.newTurn(selected.id);
       characters = await api.characters();
       events = await api.events();
       notify('Ações e reações restauradas. Efeitos permanecem inalterados.');
