@@ -42,3 +42,5 @@ Um assistente de RPG que **não depende de LLM nem de API de IA**. A conversaç�
 **Agora:** navegador SvelteKit local + API FastAPI local + SQLite local.
 
 **Depois:** frontend pode seguir para Vercel; API e dados necessitam solução persistente externa ou backend redesenhado. Hospedagem pública não é uma capacidade já implementada.
+
+CI: o frontend deve incluir o marcador `%sveltekit.head%` no template e manter as fichas inacessíveis a visitantes sem autenticação no futuro deploy.
