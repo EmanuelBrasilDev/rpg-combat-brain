@@ -31,6 +31,8 @@ def test_lab_guardian_renders_itself_not_akira(client):
     assert "# Atributos" in content
     assert f"* Força ({enemy['strength']}/50;" in content
     assert "# Técnicas" in content
+    assert "# Proficiências" in content
+    assert f"* Reforço (nível {enemy['reinforcement_level']})" in content
     assert enemy["techniques"][0]["name"] in content
     assert "[SINTÉTICA, não confirmada]" in content
     assert "FICHA DE LABORATÓRIO" in content
@@ -131,6 +133,16 @@ def test_unknown_named_target_returns_error_not_akira(client):
     assert "Não encontrei a ficha" in result["answer"]
     assert "# Akira Uchiha" not in result["answer"]
     assert "Kenrykat" not in result["answer"]
+
+
+def test_ambiguous_pronoun_does_not_automatically_export_akira(client):
+    guardiao(client)
+    result = client.post("/api/chat", json={
+        "message": "Transforme essa ficha em texto no mesmo modelo do Akira"
+    }).json()
+    assert result["intent"] == "sheet_export"
+    assert "não há uma ficha-alvo" in result["answer"]
+    assert "# Akira Uchiha" not in result["answer"]
 
 
 def test_export_command_selected_sheet_still_works(client):
