@@ -4,6 +4,41 @@ Assistente conversacional tático e **local-first** para o RPG **JJK — Era da 
 
 **Status: MVP v0.1 em desenvolvimento.** As recomendações são heurísticas explicáveis; não substituem as regras ou decisões do mestre.
 
+## Exportação de ficha em texto estilizado
+
+A **\`CharacterSheetFormatterSkill\`** lê o estado atual de qualquer ficha e produz Markdown pronto para colar em chat, Discord ou anotações do RPG. No painel **Fichas de combate**, use **Ficha em texto estilizado → Copiar texto**. A prévia atualiza quando você edita os dados da ficha. Também é possível escrever **"transforme a ficha do Akira em texto"** ou \`/ficha-texto\` no chat.
+
+Exemplo abreviado:
+
+~~~md
+# Akira Uchiha
+HP (600)
+EA (731)
+-
+# Atributos
+* Força (26/50; mod. +8)
+* Velocidade (34/50; mod. +12)
+-
+# Dragon Scales (?t restantes)
+* Durabilidade (100)
+* Defesa (8d8)
+-
+# Mangekyō Sharingan
+* Amaterasu (0/1 uso)
+-
+# Técnicas
+* Crimson Dragon's Fangs (0/6 usos) — cooldown ?c
+-
+# Itens
+* Kenrykat (8d5 + 5d2) — Kokusen (0/3 críticos)
+~~~
+
+O formato reúne recursos, atributos, transformações, técnicas, habilidades extras, itens, efeitos e observações. Para habilidades como "Mega Brain", cadastre a habilidade na seção **Habilidades Extras**. Itens próprios também podem ser cadastrados no editor.
+
+**Regras de fidelidade:** \`?c\` indica cooldown não informado, \`?t\` indica turnos restantes não controlados. **0/6 usos não é cooldown de 0**, e a duração base de quatro turnos de uma forma não significa que restem quatro turnos no combate. Não é preenchida nenhuma habilidade que não conste na ficha ou no catálogo. A renderização não consome recursos e não modifica fichas.
+
+API: \`GET /api/characters/{id}/export\` → \`{"character_id":"...","character_name":"...","format":"markdown","content":"..."}\`.
+
 ## Descoberta gradual das técnicas inimigas
 
 A \`EnemyAbilityDiscoverySkill\` cria propostas de técnicas inimigas com base nas ações **observadas** durante o combate. O sistema não exige conhecer todas as habilidades do inimigo desde o início.
